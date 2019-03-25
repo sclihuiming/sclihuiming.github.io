@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" >
 
-<title>学习 | pmlov</title>
+<title>学习备忘录 | pmlov</title>
 <meta name="description" content="JUST DO IT">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -11,6 +11,12 @@
 <link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico">
 <link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
 
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
 
 
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -75,53 +81,57 @@
 
       <div class="main-container">
         <div class="content-container" data-aos="fade-up">
-          <h2 class="current-tag">标签: 学习</h2>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu">
-                  <h2 class="post-title">学习备忘录</h2>
-                </a>
-                <div class="post-date">
-                  2019-03-25
-                </div>
-                <div class="post-abstract">
-                  
-                </div>
+          <div class="post-detail">
+            <h2 class="post-title">学习备忘录</h2>
+            <div class="post-date">2019-03-25</div>
+            
+              <div class="feature-container" style="background-image: url('https://sclihuiming.github.io/post-images/xue-xi-bei-wang-lu.jpg')">
               </div>
-              
-                <a class="right" href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu">
-                  <div class="feature-container" style="background-image: url('https://sclihuiming.github.io/post-images/xue-xi-bei-wang-lu.jpg')">
-                  </div>
-                </a>
-              
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian">
-                  <h2 class="post-title">2019年Node.js开发学习路线</h2>
-                </a>
-                <div class="post-date">
-                  2019-03-13
-                </div>
-                <div class="post-abstract">
-                  
-                </div>
-              </div>
-              
-                <a class="right" href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian">
-                  <div class="feature-container" style="background-image: url('https://sclihuiming.github.io/post-images/2019-nian-nodejs-kai-fa-xue-xi-lu-xian.jpg')">
-                  </div>
-                </a>
-              
-            </article>
-          
+            
+            <div class="post-content">
+              <ul>
+<li><input disabled="" type="checkbox"> leaflet</li>
+<li><input disabled="" type="checkbox"> docker</li>
+<li><input disabled="" type="checkbox"> redis</li>
+<li><input disabled="" type="checkbox"> nginx</li>
+<li><input disabled="" type="checkbox"> git</li>
+<li><input disabled="" type="checkbox"> shell</li>
+<li><input disabled="" type="checkbox"> 算法基础</li>
+<li><input disabled="" type="checkbox"> puppteer</li>
+<li><input disabled="" type="checkbox"> fastify</li>
+<li><input disabled="" type="checkbox"> 更多</li>
+</ul>
 
-          <div class="pagination-container">
-  
-  
-</div>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://sclihuiming.github.io/tag/lJO5qEfSw" class="tag">
+                    学习
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian">
+                  <h3 class="post-title">
+                    2019年Node.js开发学习路线
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
 
         </div>
       </div>
@@ -143,6 +153,29 @@ var app = new Vue({
 })
 
 </script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
 
 
 
