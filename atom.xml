@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://sclihuiming.github.io</id>
+    <title>pmlov</title>
+    <updated>2019-06-26T02:29:05.638Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://sclihuiming.github.io"/>
+    <link rel="self" href="https://sclihuiming.github.io/atom.xml"/>
+    <subtitle>JUST DO IT</subtitle>
+    <logo>https://sclihuiming.github.io/images/avatar.png</logo>
+    <icon>https://sclihuiming.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2019, pmlov</rights>
+    <entry>
+        <title type="html"><![CDATA[csv大文件读取并且写入数据库]]></title>
+        <id>https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku</id>
+        <link href="https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku">
+        </link>
+        <updated>2019-05-21T02:34:17.000Z</updated>
+        <summary type="html"><![CDATA[<p>最近有一个需求，就是三方发来一个csv大文件（超过1个G）需要写入mongodb数据，提供接口支持自己的服务。由于文件太大，不能一次读入内存中，那么需要使用stream来进行处理，这里提供了几种方法来解决这次问题。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>最近有一个需求，就是三方发来一个csv大文件（超过1个G）需要写入mongodb数据，提供接口支持自己的服务。由于文件太大，不能一次读入内存中，那么需要使用stream来进行处理，这里提供了几种方法来解决这次问题。</p>
+<!-- more --> 
+<hr>
+<p>csv文件可以理解为一种有特定分隔符的文本文件。这样我们就可以按照文本文件对此进行处理，而不需要第三方xlsx的库了。</p>
+<h2 id="方案1-简单粗暴">方案1 简单粗暴</h2>
+<p>由于mongodb是支持csv方式导入文件的，可以稍作处理，直接导入数据库。（导入前建议将相关索引都建立好）</p>
+<h2 id="方案2-使用readline逐行读取数据">方案2 使用readline逐行读取数据</h2>
+<p>readline作为node.js核心库，可以直接引入使用，文档地址：<a href="https://nodejs.org/dist/latest-v10.x/docs/api/readline.html">https://nodejs.org/dist/latest-v10.x/docs/api/readline.html</a></p>
+<ol>
+<li>首先创建一个<code>readline.Interface</code>实例</li>
+</ol>
+<pre><code class="language-javascript">const readline = require('readline');
+const fs = require('fs');
+const rl = readline.createInterface({
+  input: fs.createReadStream('xxxx.csv')//要监听的可读流
+});
+</code></pre>
+<ol start="2">
+<li>监听<code>line</code>事件</li>
+</ol>
+<pre><code class="language-javascript">let index = 0;//计数
+let header = [];// 用于存放csv的表头
+rl.on('line', async (line) =&gt; {
+  rl.pause();//暂停流
+  if (index === 0) {//第一行为表头
+    header = _.split(line, ',');
+    index++;
+    // rl.prompt();
+  } else {//数据行
+    index++;
+    let tmpData = _.split(line, ',');
+    let tmpObj = _.zipObject(header, tmpData);//lodash的方法，将2个数组映射成对象
+    let imei = tmpObj['muid'];
+    if (imei) {
+      //数据库写入操作
+    } else {
+      // rl.prompt();当调用时，如果 input 流已暂停，则 rl.prompt() 将恢复它。
+    }
+  }
+});
+</code></pre>
+<p><em>上面的方法使用lodash的zipObject，文档如下：<a href="https://lodash.com/docs/4.17.11#zipObject">zipObject</a></em></p>
+<ol start="3">
+<li>
+<p>刷新流，这里需要刷新流是因为上面的流被暂停了，但是这个流被暂停不是实时的。</p>
+<blockquote>
+<p><code>rl.pause()</code> 方法会暂停 <code>input</code> 流，允许稍后在必要时恢复它。调用 <code>rl.pause()</code> 不会立刻暂停 <code>readline.Interface</code> 实例触发的其他事件</p>
+</blockquote>
+<p>所以我们不能再<code>line</code>事件中来刷新流(如果那样做的话也会将内存撑爆的，具体原因就是因为这个流暂停的不是立刻暂停的，我这里测试的是每次暂停的事件生效的时候，index已经跑到了1986了)，所以这里采用一个<code>setInterval</code>来刷新流，每一次刷新前都有接近2000条的数据等待着处理，我这里数据库处理2000条数据大约需要500毫秒，所以这个间隔时间我设置的500</p>
+<pre><code class="language-javascript">setInterval(function () {
+  rl.prompt();
+}, 500)
+
+rl.on('close', function () {
+  console.log('close');
+  // resolve(1);
+});
+</code></pre>
+</li>
+</ol>
+<p><strong>这个方法并不能很好控制住数据的处理，所以也不能在线上环境使用，只有在本地作为临时处理的方案</strong></p>
+<h2 id="方案3-使用readstream">方案3 使用readStream</h2>
+<p>使用stream的事件来处理文件，而且分隔符不仅仅限于换行分隔符(\r，\n，\r\n)。</p>
+<ol>
+<li>创建流，监听事件</li>
+</ol>
+<pre><code class="language-javascript">  let readable = fs.createReadStream(filePath);
+  readable.on('open', function (fd) {
+    console.log('file was opened, fd - ', fd);
+  });
+  readable.on('data', async function (chunk) {
+    // console.log('read %d bytes: %s', chunk.length, chunk);
+    await dealData(readable, chunk);
+  });
+  readable.on('end', function () {
+    console.log('read end');
+  });
+  readable.on('close', function () {
+    console.log('file was closed.');
+  });
+  readable.on('error', function (err) {
+    console.log('error occured: %s', err.message);
+  });
+</code></pre>
+<ol start="2">
+<li>dealData处理数据</li>
+</ol>
+<pre><code class="language-javascript">async function dealData(readable, data) {
+		readable.pause();//暂停读取
+		dataBuffer = Buffer.concat([dataBuffer, data]);
+		let seperate = &quot;\n&quot;;//分隔符，可以根据条件填写
+		let index = dataBuffer.indexOf(seperate);
+		// console.log(index)
+		let lineBuffer;//行数据缓存
+		let len;
+		while (index &gt; -1) {
+			len = index + seperate.length;
+			lineBuffer = dataBuffer.slice(0, len);//目标数据
+			num++;
+			//await 数据库操作lineBuffer
+			//处理每一行数据
+			dataBuffer = dataBuffer.slice(len, dataBuffer.length);
+			index = dataBuffer.indexOf(seperate);
+		}
+		readable.resume();//恢复读取文件
+}
+</code></pre>
+<p><strong>目前方案3的程序运营良好，没有出现什么内存泄露的问题，能够解决目前所遇到的问题</strong></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[学习备忘录]]></title>
+        <id>https://sclihuiming.github.io/post/xue-xi-bei-wang-lu</id>
+        <link href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu">
+        </link>
+        <updated>2019-03-25T03:59:52.000Z</updated>
+        <content type="html"><![CDATA[<ul class="contains-task-list">
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8552173"><label class="task-list-item-label" for="task-item-8552173"> leaflet</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3736791"><label class="task-list-item-label" for="task-item-3736791"> docker</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6298324"><label class="task-list-item-label" for="task-item-6298324"> redis</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5539904"><label class="task-list-item-label" for="task-item-5539904"> nginx</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4511514"><label class="task-list-item-label" for="task-item-4511514"> git</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-505173"><label class="task-list-item-label" for="task-item-505173"> shell</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4272289"><label class="task-list-item-label" for="task-item-4272289"> 算法基础</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-2437939"><label class="task-list-item-label" for="task-item-2437939"> puppteer</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3564105"><label class="task-list-item-label" for="task-item-3564105"> fastify</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9935330"><label class="task-list-item-label" for="task-item-9935330"> 更多</label></li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[2019年Node.js开发学习路线]]></title>
+        <id>https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian</id>
+        <link href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian">
+        </link>
+        <updated>2019-03-13T02:43:55.000Z</updated>
+        <content type="html"><![CDATA[<hr>
+<p><img src="https://sclihuiming.github.io/post-images/1552445306692.png" alt=""></p>
+<p>以上图片来自github <a href="https://github.com/aliyr/Nodejs-Developer-Roadmap">Nodejs-Developer-Roadmap</a></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[分享为王(不定期更新）]]></title>
+        <id>https://sclihuiming.github.io/post/movie_resources</id>
+        <link href="https://sclihuiming.github.io/post/movie_resources">
+        </link>
+        <updated>2018-12-06T06:43:09.000Z</updated>
+        <content type="html"><![CDATA[<hr>
+<h2 id="通用级">通用级</h2>
+<ul>
+<li>谷歌 <a href="https://www.google.com/">https://www.google.com/</a></li>
+<li>百度 <a href="https://www.baidu.com/">https://www.baidu.com/</a></li>
+</ul>
+<h2 id="按日期统计更新">按日期统计更新</h2>
+<h3 id="2019-04-12">2019-04-12</h3>
+<ul>
+<li>迅播 <a href="https://www.22tu.cc/">https://www.22tu.cc/</a></li>
+<li>neets <a href="https://neets.cc/">https://neets.cc/</a></li>
+<li>Gimy TV 剧迷 <a href="https://in.gimy.tv/">https://in.gimy.tv/</a></li>
+<li>Nutts <a href="http://nutts.tv/explore/">http://nutts.tv/explore/</a></li>
+<li>一站搜 <a href="http://videos.yizhansou.com/">http://videos.yizhansou.com/</a></li>
+<li><a href="https://www.parsevideo.com/">视频解析网，微博、秒拍、汤不热视频解析下载网站</a></li>
+</ul>
+<h3 id="2019-06-26">2019-06-26</h3>
+<ul>
+<li>黑暗bt搜索 <a href="https://www.iheian.com/">https://www.iheian.com/ </a></li>
+<li>磁力管家 <a href="https://7pp.me/">https://7pp.me/</a></li>
+<li>查种子 <a href="https://chazhongzi.com/">https://chazhongzi.com/</a></li>
+<li>柠檬磁力 <a href="http://lemoncili.com">http://lemoncili.com</a></li>
+<li>磁力维基 <a href="https://www.ciliwiki.com/">https://www.ciliwiki.com/</a></li>
+</ul>
+<h2 id="入门级">入门级</h2>
+<p><s>一般的经典、大众类电影，在各大主流视频网站都有，但是这类网站许多电影需要开会员才能观看，局限性比较大。</s></p>
+<h2 id="初级">初级</h2>
+<p><strong>稍微小众点</strong>的电影，或者是<strong>近期热门</strong>（除了正在影院上映的电影），A、B站上基本都有。
+A站（AcFun）： <a href="http://www.acfun.cn/">A站</a>
+B站（bilibili）：<a href="http://www.bilibili.com/">B站</a></p>
+<h2 id="中级">中级</h2>
+<p>冷门的、最新的电影，以及一些“非主流”电影，可以通过网盘搜索引擎和一些影视资源网站来获取。
+网盘搜索引擎推荐截图：</p>
+<ul>
+<li>盘搜：http://www.pansou.com/</li>
+</ul>
+<p>影视资源网站推荐：</p>
+<ul>
+<li><s>看看屋：http://www.kankanwu.com/</s></li>
+<li>电影首发站（五号站）：http://www.wuhaozhan.net/movie/list/</li>
+<li>人人字幕组：http://www.zimuzu.io/</li>
+<li><s>天天美剧：http://www.ttmeiju.com/</s></li>
+</ul>
+<h2 id="高级">高级</h2>
+<p>还有一些资源，需要通过种子、磁力链等方式下载。</p>
+<ul>
+<li><s>电影街：https://moviejie.com/</s></li>
+<li><s>高清控联盟：http://www.gaoqingkong.com/</s></li>
+<li><s>圣城影视发布页：http://www.cnscg.org/</s></li>
+<li><s>BT樱桃：http://www.btcherry.com/</s></li>
+</ul>
+<p>其实磁力链接不喜欢用  除非你是 “大水管”  不然也是白费</p>
+<h2 id="神级">神级</h2>
+<p>国外的资源网站，更新速度快，但往往没有中文字幕，适合英语好的骨灰级影迷。
+资源网站：</p>
+<ul>
+<li>RARBG：http://www.rarbg.com/torrents.php</li>
+</ul>
+<p>字幕网站：</p>
+<ul>
+<li>Sub HD 字幕站：http://subhd.com/</li>
+<li>伪射手网：http://sub.makedie.me/</li>
+</ul>
+<p>●补充特色站点：</p>
+<ul>
+<li><s>KiSHD，http://www.kishd.org/  韩影、韩剧、韩国综艺等，资源丰富。还有自己的韩语字幕组。</s></li>
+<li>印度电影论坛：http://www.indmi.com/  印度电影资源丰富，还有印度相关知识。</li>
+<li><s>立体中国，http://bbs.cnliti.com/  主打3D资源</s></li>
+<li>纪录片之家，http://www.jlpzj.net/   最丰富的纪录片资源站点</li>
+<li>同志亦凡人，http://www.qafone.co/  同性题材网站</li>
+</ul>
+]]></content>
+    </entry>
+</feed>
