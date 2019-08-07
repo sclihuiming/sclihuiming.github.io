@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://sclihuiming.github.io</id>
     <title>pmlov</title>
-    <updated>2019-08-07T06:31:26.953Z</updated>
+    <updated>2019-08-07T06:36:02.596Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://sclihuiming.github.io"/>
     <link rel="self" href="https://sclihuiming.github.io/atom.xml"/>
@@ -16,7 +16,12 @@
         <link href="https://sclihuiming.github.io/post/bei-jing-tong-xun-lu">
         </link>
         <updated>2019-08-07T06:15:01.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="万能热线-12345">万能热线    12345</h2>
+        <summary type="html"><![CDATA[<p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
+<!-- more --> 
+<hr>
+<h2 id="万能热线-12345">万能热线    12345</h2>
 <blockquote>
 <p>这是一个“神奇”的电话，基本上你在北京生活，遇到的大事小事都能打这个电话，除了咨询，还可以投诉问题哦</p>
 </blockquote>
@@ -1496,16 +1501,16 @@ rl.on('close', function () {
         </link>
         <updated>2019-03-25T03:59:52.000Z</updated>
         <content type="html"><![CDATA[<ul class="contains-task-list">
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-7474991"><label class="task-list-item-label" for="task-item-7474991"> leaflet</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3832683"><label class="task-list-item-label" for="task-item-3832683"> docker</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3575661"><label class="task-list-item-label" for="task-item-3575661"> redis</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4302409"><label class="task-list-item-label" for="task-item-4302409"> nginx</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8271332"><label class="task-list-item-label" for="task-item-8271332"> git</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5480832"><label class="task-list-item-label" for="task-item-5480832"> shell</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9846947"><label class="task-list-item-label" for="task-item-9846947"> 算法基础</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-879717"><label class="task-list-item-label" for="task-item-879717"> puppteer</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8501677"><label class="task-list-item-label" for="task-item-8501677"> fastify</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1129359"><label class="task-list-item-label" for="task-item-1129359"> 更多</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3447135"><label class="task-list-item-label" for="task-item-3447135"> leaflet</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5781482"><label class="task-list-item-label" for="task-item-5781482"> docker</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1181761"><label class="task-list-item-label" for="task-item-1181761"> redis</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9187782"><label class="task-list-item-label" for="task-item-9187782"> nginx</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6597428"><label class="task-list-item-label" for="task-item-6597428"> git</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9747283"><label class="task-list-item-label" for="task-item-9747283"> shell</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1335181"><label class="task-list-item-label" for="task-item-1335181"> 算法基础</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1177229"><label class="task-list-item-label" for="task-item-1177229"> puppteer</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-815580"><label class="task-list-item-label" for="task-item-815580"> fastify</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6906557"><label class="task-list-item-label" for="task-item-6906557"> 更多</label></li>
 </ul>
 ]]></content>
     </entry>
