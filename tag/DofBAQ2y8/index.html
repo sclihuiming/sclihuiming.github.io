@@ -1,272 +1,163 @@
+<!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="utf-8" >
 
-<head>
-    <meta charset="utf-8" />
-<meta name="description" content="" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>
-    电影 | pmlov
-</title>
-<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1574409222174">
-<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
-<link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<title>电影 | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1574409305983">
 <link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
-<!-- js -->
-<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
-<script src="https://sclihuiming.github.io/media/js/jquery.sticky-sidebar.min.js"></script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
-<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 
 
-</head>
-
-<body>
-    <div class="main">
-        <div class="header">
-    <div class="nav">
-        <div class="logo">
-            <a href="https://sclihuiming.github.io">
-                <img class="avatar" src="https://sclihuiming.github.io/images/avatar.png?v=1574409222174" alt="">
-            </a>
-            <div class="site-title">
-                <h1>
-                    pmlov
-                </h1>
-            </div>
-        </div>
-        <span class="menu-btn fa fa-align-justify"></span>
-        <div class="menu-container">
-            <ul>
-                
-                    
-                            <li>
-                                <a href="/" class="menu">
-                                    首页
-                                </a>
-                            </li>
-                            
-                                
-                    
-                            <li>
-                                <a href="/archives" class="menu">
-                                    归档
-                                </a>
-                            </li>
-                            
-                                
-                    
-                            <li>
-                                <a href="/tags" class="menu">
-                                    标签
-                                </a>
-                            </li>
-                            
-                                
-                    
-                            <li>
-                                <a href="/post/about" class="menu">
-                                    关于
-                                </a>
-                            </li>
-                            
-                                
-            </ul>
-        </div>
-    </div>
-</div>
-
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
 <script>
-    $(document).ready(function() {
-        $(".menu-btn").click(function() {
-            $(".menu-container").slideToggle();
-        });
-        $(window).resize(function() {
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-            if (window.matchMedia('(min-width: 960px)').matches) {
-                $(".menu-container").css('display', 'block')
-            } else {
-                $(".menu-container").css('display', 'none')
-            }
-
-        });
-    });
+  gtag('config', 'UA-140235358-1');
 </script>
 
-            <div id="main-content" class="post-container main-container">
-                <div id="content" class="main-container-left">
-                    
-    <div class="i-card">
-        <b>标签：#
-        电影</b>
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1574409305983" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
     </div>
-    
+    <div>
+      
         
-            <article class="post i-card">
-                <h2 class="post-title">
-                    <a href="https://sclihuiming.github.io/post/movie_resources">
-                        分享为王(不定期更新）
-                    </a>
-                </h2>
-                <div class="post-info">
-                    <time class="post-time">2018-12-06</time>
-                    
-                        <a href="https://sclihuiming.github.io/tag/DofBAQ2y8" class="post-tag i-tag
-                            i-tag-banana">
-            #电影
-        </a>
-                        
-                        <a href="https://sclihuiming.github.io/tag/FCuNKhfM5" class="post-tag i-tag
-                            i-tag-primary">
-            #资源
-        </a>
-                        
-                </div>
-                <div class="post-article">
-                    
-                        <a href="https://sclihuiming.github.io/post/movie_resources" class="post-feature-image" style="background-image:url(https://sclihuiming.github.io/post-images/movie_resources.jpg) ">
-                        </a>
-                        
-                            <div class="post-content">
-                                
-                                        <div class="post-content-content">
-                                            
-通用级
-
-谷歌 https://www.google.com/
-百度 https://www.baidu.com/
-
-按日期统计更新
-2019-04-12
-
-迅播 https://www.22tu.cc/
-neets https://neets.cc/
-Gimy TV 剧迷 https://in.gimy.tv/
-Nutts http://nutts.tv/explore/
-一站搜 http://videos.yizhansou.com/
-视频解析网，微博、秒拍、汤不热视频解析下载网站
-
-2019-06-26
-
-黑暗bt搜索 https://www.iheian.com/ 
-磁力管家 https://7pp.me/
-查种子 https://chazhongzi.com/
-柠檬磁力 http://lemoncili.com
-磁力维基 https://www.ciliwiki.com/
-
-入门级
-一般的经典、大众类电影，在各大主流视频网站都有，但是这类网站许多电影需要开会员才能观看，局限性比较大。
-初级
-稍微小众点的电影，或者是近期热门（除了正在影院上映的电影），A、B站上基本都有。
-A站（AcFun）： A站
-B站（bilibili）：B站
-中级
-冷门的、最新的电影，以及一些“非主流”电影，可以通过网盘搜索引擎和一些影视资源网站来获取。
-网盘搜索引擎推荐截图：
-
-盘搜：http://www.pansou.com/
-
-影视资源网站推荐：
-
-看看屋：http://www.kankanwu.com/
-电影首发站（五号站）：http://www.wuhaozhan.net/movie/list/
-人人字幕组：http://www.zimuzu.io/
-天天美剧：http://www.ttmeiju.com/
-
-高级
-还有一些资源，需要通过种子、磁力链等方式下载。
-
-电影街：https://moviejie.com/
-高清控联盟：http://www.gaoqingkong.com/
-圣城影视发布页：http://www.cnscg.org/
-BT樱桃：http://www.btcherry.com/
-
-其实磁力链接不喜欢用  除非你是 “大水管”  不然也是白费
-神级
-国外的资源网站，更新速度快，但往往没有中文字幕，适合英语好的骨灰级影迷。
-资源网站：
-
-RARBG：http://www.rarbg.com/torrents.php
-
-字幕网站：
-
-Sub HD 字幕站：http://subhd.com/
-伪射手网：http://sub.makedie.me/
-
-●补充特色站点：
-
-KiSHD，http://www.kishd.org/  韩影、韩剧、韩国综艺等，资源丰富。还有自己的韩语字幕组。
-印度电影论坛：http://www.indmi.com/  印度电影资源丰富，还有印度相关知识。
-立体中国，http://bbs.cnliti.com/  主打3D资源
-纪录片之家，http://www.jlpzj.net/   最丰富的纪录片资源站点
-同志亦凡人，http://www.qafone.co/  同性题材网站
-
-
-                                        </div>
-                                        
-                                            <a class="btn btn-text" href="https://sclihuiming.github.io/post/movie_resources">Read More ~</a>
-                            </div>
-                </div>
-            </article>
-            
-                <!-- 翻页 -->
-                
-                </div>
-                <!--  -->
-                <div class="main-container-middle"></div>
-                <!--  -->
-                <div id="sidebar" class="main-container-right">
-
-                    <!-- 个人信息 -->
-                    
-    <div class="id_card i-card">
-        <div class="id_card-avatar" style="background-image: url(https://sclihuiming.github.io/images/avatar.png?v=1574409222174)">
-        </div>
-        <h1 class="id_card-title">
-            pmlov
-        </h1>
-        <h2 class="id_card-description">
-            JUST DO IT
-        </h2>
-        <!--  -->
-        <div class="id_card-sns">
-            <!-- github -->
-            
-                    <!-- twitter -->
-                    
-                            <!-- weibo -->
-                            
-                                    <!-- facebook -->
-                                    
-
-        </div>
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
     </div>
-    
-
-                        <!-- 公告栏 -->
-                        
-
-                </div>
-            </div>
-
-
-
-            <div class="site-footer">
-   | 
-  <a class="rss" href="https://sclihuiming.github.io/atom.xml" target="_blank">RSS</a>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
 </div>
 
-<script>
-  hljs.initHighlightingOnLoad()
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <h2 class="current-tag">标签: 电影</h2>
+          
+            <article class="post-item">
+              <div class="left">
+                <a href="https://sclihuiming.github.io/post/movie_resources">
+                  <h2 class="post-title">分享为王(不定期更新）</h2>
+                </a>
+                <div class="post-date">
+                  2018-12-06
+                </div>
+                <div class="post-abstract">
+                  
+                </div>
+              </div>
+              
+                <a class="right" href="https://sclihuiming.github.io/post/movie_resources">
+                  <div class="feature-container" style="background-image: url('https://sclihuiming.github.io/post-images/movie_resources.jpg')">
+                  </div>
+                </a>
+              
+            </article>
+          
+
+          <div class="pagination-container">
+  
+  
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
 </script>
 
-    </div>
-    <script>
-        $('#sidebar').stickySidebar({
-            topSpacing: 80,
-            // bottomSpacing: 60
-        });
-    </script>
-</body>
 
+
+
+  </body>
 </html>

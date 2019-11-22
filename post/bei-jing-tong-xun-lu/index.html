@@ -1,130 +1,124 @@
+<!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="utf-8" >
 
-<head>
-    <meta charset="utf-8" />
-<meta name="description" content="" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>
-    北京通讯录 | pmlov
-</title>
-<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1574409222174">
-<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
-<link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<title>北京通讯录 | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1574409305983">
 <link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
-<!-- js -->
-<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
-<script src="https://sclihuiming.github.io/media/js/jquery.sticky-sidebar.min.js"></script>
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
-<script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 
 
-        
-            
-                <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
-                <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
-                
-
-                    
-                            
-</head>
-
-<body>
-    <div class="main">
-        <div class="header">
-    <div class="nav">
-        <div class="logo">
-            <a href="https://sclihuiming.github.io">
-                <img class="avatar" src="https://sclihuiming.github.io/images/avatar.png?v=1574409222174" alt="">
-            </a>
-            <div class="site-title">
-                <h1>
-                    pmlov
-                </h1>
-            </div>
-        </div>
-        <span class="menu-btn fa fa-align-justify"></span>
-        <div class="menu-container">
-            <ul>
-                
-                    
-                            <li>
-                                <a href="/" class="menu">
-                                    首页
-                                </a>
-                            </li>
-                            
-                                
-                    
-                            <li>
-                                <a href="/archives" class="menu">
-                                    归档
-                                </a>
-                            </li>
-                            
-                                
-                    
-                            <li>
-                                <a href="/tags" class="menu">
-                                    标签
-                                </a>
-                            </li>
-                            
-                                
-                    
-                            <li>
-                                <a href="/post/about" class="menu">
-                                    关于
-                                </a>
-                            </li>
-                            
-                                
-            </ul>
-        </div>
-    </div>
-</div>
-
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
 <script>
-    $(document).ready(function() {
-        $(".menu-btn").click(function() {
-            $(".menu-container").slideToggle();
-        });
-        $(window).resize(function() {
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-            if (window.matchMedia('(min-width: 960px)').matches) {
-                $(".menu-container").css('display', 'block')
-            } else {
-                $(".menu-container").css('display', 'none')
-            }
-
-        });
-    });
+  gtag('config', 'UA-140235358-1');
 </script>
 
-            <div id="main-content" class="post-detail main-container">
-                <!-- left -->
-                <div id="content" class="main-container-left">
-                    <article class="post i-card">
-                        <h2 class="post-title">
-                            北京通讯录
-                        </h2>
-                        <div class="post-info">
-                            <time class="post-time">2019-08-07</time>
-                            
-                                <a href="https://sclihuiming.github.io/tag/OZ3ifTPvy" class="post-tag i-tag
-                            i-tag-other_1">
-                            #生活
-                        </a>
-                                
-                                <a href="https://sclihuiming.github.io/tag/N2Rz6G96b" class="post-tag i-tag
-                            i-tag-">
-                            #便捷
-                        </a>
-                                
-                        </div>
-                        
-                                <div class="post-content">
-                                    <p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1574409305983" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">北京通讯录</h2>
+            <div class="post-date">2019-08-07</div>
+            
+            <div class="post-content">
+              <p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
 <!-- more --> 
 <hr>
 <h2 id="万能热线-12345">万能热线    12345</h2>
@@ -1481,115 +1475,87 @@
 </tbody>
 </table>
 
-                                </div>
-                    </article>
-                    <!--  -->
-                    
-                        <div class="next-post">
-                            <div class="next">下一篇</div>
-                            <a href="https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku">
-                                <h3 class="post-title">
-                                    csv大文件读取并且写入数据库
-                                </h3>
-                            </a>
-                        </div>
-                        
-                            <div id="disqus_thread"></div>
-                            <div id="gitalk-container"></div>
-                </div>
-                <!-- middle -->
-                <div class="main-container-middle"></div>
-                <!-- right -->
-                <div id="sidebar" class="main-container-right">
-                    
-                        <!-- toc -->
-                        
-    <div class="toc-card i-card ">
-        <div class="toc-title i-card-title">目录</div>
-        <div class="toc-content">
-            <ul class="markdownIt-TOC">
-<li>
-<ul>
-<li><a href="#%E4%B8%87%E8%83%BD%E7%83%AD%E7%BA%BF-12345">万能热线    12345</a></li>
-<li><a href="#%E5%85%B6%E4%BB%96">其他</a></li>
-</ul>
-</li>
-</ul>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://sclihuiming.github.io/tag/OZ3ifTPvy" class="tag">
+                    生活
+                  </a>
+                
+                  <a href="https://sclihuiming.github.io/tag/N2Rz6G96b" class="tag">
+                    便捷
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku">
+                  <h3 class="post-title">
+                    csv大文件读取并且写入数据库
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
 
         </div>
-        <script>
-            function locateCatelogList() {
-                /*获取文章目录集合,可通过:header过滤器*/
-                var alis = $('.post-content :header');
-                /*获取侧边栏目录列表集合**/
-                var sidebar_alis = $('.markdownIt-TOC a');
-                /*获取滚动条到顶部的距离*/
-                var scroll_height = $(window).scrollTop();
-                for (var i = 0; i < alis.length; i++) {
-                    /*获取锚点集合中的元素分别到顶点的距离*/
-                    var a_height = $(alis[i]).offset().top;
-                    if (a_height < scroll_height) {
-                        /*高亮显示*/
-                        sidebar_alis.removeClass('on');
-                        $(sidebar_alis[i]).addClass('on');
-                    }
-                }
-            }
-            $(function() {
-                /*绑定滚动事件 */
-                $(window).bind('scroll', locateCatelogList);
-            });
-        </script>
+      </div>
     </div>
-    
-                            
 
-                </div>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
 
+<script type="application/javascript">
 
+AOS.init();
 
+hljs.initHighlightingOnLoad()
 
-            </div>
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
 
-
-            <div class="site-footer">
-   | 
-  <a class="rss" href="https://sclihuiming.github.io/atom.xml" target="_blank">RSS</a>
-</div>
-
-<script>
-  hljs.initHighlightingOnLoad()
 </script>
 
 
-    </div>
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
     <script>
-        $('#sidebar').stickySidebar({
-            topSpacing: 80,
-            // bottomSpacing: 60
-        });
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
     </script>
-    
-        
-            <script>
-    window.onload = function() {
-        var gitalk = new Gitalk({
-            clientID: '937b3a9f7298e02bbf41',
-            clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
-            repo: 'sclihuiming.github.io',
-            owner: 'sclihuiming',
-            admin: ['sclihuiming'],
-            id: (location.pathname).substring(0, 49), // Ensure uniqueness and length less than 50
-            distractionFreeMode: false // Facebook-like distraction free mode
-        })
+  
 
-        gitalk.render('gitalk-container')
-    }
-</script>
-                
+  
 
-                    
-                                
-</body>
 
+
+
+  </body>
 </html>
