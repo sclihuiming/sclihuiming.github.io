@@ -2,18 +2,18 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://sclihuiming.github.io</id>
     <title>pmlov</title>
-    <updated>2019-11-22T07:55:11.430Z</updated>
+    <updated>2020-07-01T03:04:35.278Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://sclihuiming.github.io"/>
     <link rel="self" href="https://sclihuiming.github.io/atom.xml"/>
     <subtitle>JUST DO IT</subtitle>
     <logo>https://sclihuiming.github.io/images/avatar.png</logo>
     <icon>https://sclihuiming.github.io/favicon.ico</icon>
-    <rights>All rights reserved 2019, pmlov</rights>
+    <rights>All rights reserved 2020, pmlov</rights>
     <entry>
         <title type="html"><![CDATA[北京通讯录]]></title>
-        <id>https://sclihuiming.github.io/post/bei-jing-tong-xun-lu</id>
-        <link href="https://sclihuiming.github.io/post/bei-jing-tong-xun-lu">
+        <id>https://sclihuiming.github.io/post/bei-jing-tong-xun-lu/</id>
+        <link href="https://sclihuiming.github.io/post/bei-jing-tong-xun-lu/">
         </link>
         <updated>2019-08-07T06:15:01.000Z</updated>
         <summary type="html"><![CDATA[<p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
@@ -1378,8 +1378,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[csv大文件读取并且写入数据库]]></title>
-        <id>https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku</id>
-        <link href="https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku">
+        <id>https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku/</id>
+        <link href="https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku/">
         </link>
         <updated>2019-05-21T02:34:17.000Z</updated>
         <summary type="html"><![CDATA[<p>最近有一个需求，就是三方发来一个csv大文件（超过1个G）需要写入mongodb数据，提供接口支持自己的服务。由于文件太大，不能一次读入内存中，那么需要使用stream来进行处理，这里提供了几种方法来解决这次问题。</p>
@@ -1496,39 +1496,39 @@ rl.on('close', function () {
     </entry>
     <entry>
         <title type="html"><![CDATA[学习备忘录]]></title>
-        <id>https://sclihuiming.github.io/post/xue-xi-bei-wang-lu</id>
-        <link href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu">
+        <id>https://sclihuiming.github.io/post/xue-xi-bei-wang-lu/</id>
+        <link href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu/">
         </link>
         <updated>2019-03-25T03:59:52.000Z</updated>
         <content type="html"><![CDATA[<ul class="contains-task-list">
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9328697"><label class="task-list-item-label" for="task-item-9328697"> leaflet</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-7535085"><label class="task-list-item-label" for="task-item-7535085"> docker</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9605427"><label class="task-list-item-label" for="task-item-9605427"> redis</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-2658290"><label class="task-list-item-label" for="task-item-2658290"> nginx</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4883904"><label class="task-list-item-label" for="task-item-4883904"> git</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8694491"><label class="task-list-item-label" for="task-item-8694491"> shell</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-718410"><label class="task-list-item-label" for="task-item-718410"> 算法基础</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-2846730"><label class="task-list-item-label" for="task-item-2846730"> puppteer</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6558566"><label class="task-list-item-label" for="task-item-6558566"> fastify</label></li>
-<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-2136157"><label class="task-list-item-label" for="task-item-2136157"> 更多</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8037398"><label class="task-list-item-label" for="task-item-8037398"> leaflet</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4636256"><label class="task-list-item-label" for="task-item-4636256"> docker</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-7044822"><label class="task-list-item-label" for="task-item-7044822"> redis</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-7342818"><label class="task-list-item-label" for="task-item-7342818"> nginx</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8898690"><label class="task-list-item-label" for="task-item-8898690"> git</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4575395"><label class="task-list-item-label" for="task-item-4575395"> shell</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1956263"><label class="task-list-item-label" for="task-item-1956263"> 算法基础</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5540904"><label class="task-list-item-label" for="task-item-5540904"> puppteer</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4876130"><label class="task-list-item-label" for="task-item-4876130"> fastify</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6676862"><label class="task-list-item-label" for="task-item-6676862"> 更多</label></li>
 </ul>
 ]]></content>
     </entry>
     <entry>
         <title type="html"><![CDATA[2019年Node.js开发学习路线]]></title>
-        <id>https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian</id>
-        <link href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian">
+        <id>https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian/</id>
+        <link href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian/">
         </link>
         <updated>2019-03-13T02:43:55.000Z</updated>
         <content type="html"><![CDATA[<hr>
-<figure data-type="image" tabindex="1"><img src="https://sclihuiming.github.io/post-images/1552445306692.png" alt=""></figure>
+<figure data-type="image" tabindex="1"><img src="https://sclihuiming.github.io/post-images/1552445306692.png" alt="" loading="lazy"></figure>
 <p>以上图片来自github <a href="https://github.com/aliyr/Nodejs-Developer-Roadmap">Nodejs-Developer-Roadmap</a></p>
 ]]></content>
     </entry>
     <entry>
         <title type="html"><![CDATA[分享为王(不定期更新）]]></title>
-        <id>https://sclihuiming.github.io/post/movie_resources</id>
-        <link href="https://sclihuiming.github.io/post/movie_resources">
+        <id>https://sclihuiming.github.io/post/movie_resources/</id>
+        <link href="https://sclihuiming.github.io/post/movie_resources/">
         </link>
         <updated>2018-12-06T06:43:09.000Z</updated>
         <content type="html"><![CDATA[<hr>
