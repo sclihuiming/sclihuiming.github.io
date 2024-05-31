@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>csv大文件读取并且写入数据库 | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1717120064416">
+<link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140235358-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1717120064416" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">csv大文件读取并且写入数据库</h2>
+            <div class="post-date">2019-05-21</div>
+            
+            <div class="post-content">
+              <p>最近有一个需求，就是三方发来一个csv大文件（超过1个G）需要写入mongodb数据，提供接口支持自己的服务。由于文件太大，不能一次读入内存中，那么需要使用stream来进行处理，这里提供了几种方法来解决这次问题。</p>
+<!-- more --> 
+<hr>
+<p>csv文件可以理解为一种有特定分隔符的文本文件。这样我们就可以按照文本文件对此进行处理，而不需要第三方xlsx的库了。</p>
+<h2 id="方案1-简单粗暴">方案1 简单粗暴</h2>
+<p>由于mongodb是支持csv方式导入文件的，可以稍作处理，直接导入数据库。（导入前建议将相关索引都建立好）</p>
+<h2 id="方案2-使用readline逐行读取数据">方案2 使用readline逐行读取数据</h2>
+<p>readline作为node.js核心库，可以直接引入使用，文档地址：<a href="https://nodejs.org/dist/latest-v10.x/docs/api/readline.html">https://nodejs.org/dist/latest-v10.x/docs/api/readline.html</a></p>
+<ol>
+<li>首先创建一个<code>readline.Interface</code>实例</li>
+</ol>
+<pre><code class="language-javascript">const readline = require('readline');
+const fs = require('fs');
+const rl = readline.createInterface({
+  input: fs.createReadStream('xxxx.csv')//要监听的可读流
+});
+</code></pre>
+<ol start="2">
+<li>监听<code>line</code>事件</li>
+</ol>
+<pre><code class="language-javascript">let index = 0;//计数
+let header = [];// 用于存放csv的表头
+rl.on('line', async (line) =&gt; {
+  rl.pause();//暂停流
+  if (index === 0) {//第一行为表头
+    header = _.split(line, ',');
+    index++;
+    // rl.prompt();
+  } else {//数据行
+    index++;
+    let tmpData = _.split(line, ',');
+    let tmpObj = _.zipObject(header, tmpData);//lodash的方法，将2个数组映射成对象
+    let imei = tmpObj['muid'];
+    if (imei) {
+      //数据库写入操作
+    } else {
+      // rl.prompt();当调用时，如果 input 流已暂停，则 rl.prompt() 将恢复它。
+    }
+  }
+});
+</code></pre>
+<p><em>上面的方法使用lodash的zipObject，文档如下：<a href="https://lodash.com/docs/4.17.11#zipObject">zipObject</a></em></p>
+<ol start="3">
+<li>
+<p>刷新流，这里需要刷新流是因为上面的流被暂停了，但是这个流被暂停不是实时的。</p>
+<blockquote>
+<p><code>rl.pause()</code> 方法会暂停 <code>input</code> 流，允许稍后在必要时恢复它。调用 <code>rl.pause()</code> 不会立刻暂停 <code>readline.Interface</code> 实例触发的其他事件</p>
+</blockquote>
+<p>所以我们不能再<code>line</code>事件中来刷新流(如果那样做的话也会将内存撑爆的，具体原因就是因为这个流暂停的不是立刻暂停的，我这里测试的是每次暂停的事件生效的时候，index已经跑到了1986了)，所以这里采用一个<code>setInterval</code>来刷新流，每一次刷新前都有接近2000条的数据等待着处理，我这里数据库处理2000条数据大约需要500毫秒，所以这个间隔时间我设置的500</p>
+<pre><code class="language-javascript">setInterval(function () {
+  rl.prompt();
+}, 500)
+
+rl.on('close', function () {
+  console.log('close');
+  // resolve(1);
+});
+</code></pre>
+</li>
+</ol>
+<p><strong>这个方法并不能很好控制住数据的处理，所以也不能在线上环境使用，只有在本地作为临时处理的方案</strong></p>
+<h2 id="方案3-使用readstream">方案3 使用readStream</h2>
+<p>使用stream的事件来处理文件，而且分隔符不仅仅限于换行分隔符(\r，\n，\r\n)。</p>
+<ol>
+<li>创建流，监听事件</li>
+</ol>
+<pre><code class="language-javascript">  let readable = fs.createReadStream(filePath);
+  readable.on('open', function (fd) {
+    console.log('file was opened, fd - ', fd);
+  });
+  readable.on('data', async function (chunk) {
+    // console.log('read %d bytes: %s', chunk.length, chunk);
+    await dealData(readable, chunk);
+  });
+  readable.on('end', function () {
+    console.log('read end');
+  });
+  readable.on('close', function () {
+    console.log('file was closed.');
+  });
+  readable.on('error', function (err) {
+    console.log('error occured: %s', err.message);
+  });
+</code></pre>
+<ol start="2">
+<li>dealData处理数据</li>
+</ol>
+<pre><code class="language-javascript">async function dealData(readable, data) {
+		readable.pause();//暂停读取
+		dataBuffer = Buffer.concat([dataBuffer, data]);
+		let seperate = &quot;\n&quot;;//分隔符，可以根据条件填写
+		let index = dataBuffer.indexOf(seperate);
+		// console.log(index)
+		let lineBuffer;//行数据缓存
+		let len;
+		while (index &gt; -1) {
+			len = index + seperate.length;
+			lineBuffer = dataBuffer.slice(0, len);//目标数据
+			num++;
+			//await 数据库操作lineBuffer
+			//处理每一行数据
+			dataBuffer = dataBuffer.slice(len, dataBuffer.length);
+			index = dataBuffer.indexOf(seperate);
+		}
+		readable.resume();//恢复读取文件
+}
+</code></pre>
+<p><strong>目前方案3的程序运营良好，没有出现什么内存泄露的问题，能够解决目前所遇到的问题</strong></p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://sclihuiming.github.io/tag/bFIJcHgTX/" class="tag">
+                    Node.js
+                  </a>
+                
+                  <a href="https://sclihuiming.github.io/tag/lJO5qEfSw/" class="tag">
+                    学习
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu/">
+                  <h3 class="post-title">
+                    学习备忘录
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

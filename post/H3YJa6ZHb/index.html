@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Linkerd初探 | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1717120064416">
+<link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140235358-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1717120064416" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Linkerd初探</h2>
+            <div class="post-date">2023-03-01</div>
+            
+            <div class="post-content">
+              <h2 id="文档">文档</h2>
+<p><a href="https://linkerd.hacker-linner.com/2.11/overview/">Linkerd 2.11 中文文档</a><br>
+<a href="https://linkerd.io/2.12/getting-started/">Linkerd 英文文档</a></p>
+<p><em>各个版本的文档执行的命令有一些细微的差别</em></p>
+<pre><code class="language-shell"># 2.12 比 2.11的安装步骤多一个
+linkerd install --crds | kubectl apply -f -
+</code></pre>
+<h2 id="安装步骤">安装步骤</h2>
+<p><strong>以下的实例是使用linkerd 2.12版本的文档</strong>  链接： <a href="https://linkerd.io/2.12/getting-started/">2.12 getting started</a></p>
+<h3 id="安装linkerd并且进行前置检查">安装linkerd并且进行前置检查</h3>
+<pre><code class="language-shell">kubectl version --short
+
+brew install linkerd
+
+linkerd version
+
+linkerd check --pre
+</code></pre>
+<h3 id="k8s中安装linkerd">k8s中安装linkerd</h3>
+<pre><code class="language-shell">linkerd install --crds | kubectl apply -f -
+
+# 使用默认仓库
+linkerd install | kubectl apply -f -
+
+# 或者使用私有仓库 
+# --identity-external-issuer  该标志指示 Linkerd 从 linkerd-identity-issuer secret 读取证书
+# --ha 高可用
+# --registry 使用指定仓库
+linkerd install --identity-external-issuer --ha --set proxyInit.runAsRoot=true --registry my-private/k8s/linkerd/ | kubectl apply -f -
+</code></pre>
+<p>如果要使用<code>--identity-external-issuer </code>这个标识，需要先开启<a href="https://linkerd.hacker-linner.com/2.11/tasks/automatically-rotating-control-plane-tls-credentials/#">自动轮换控制平面 TLS 凭证</a></p>
+<pre><code class="language-shell"># 安装cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+
+#
+kubectl create namespace linkerd
+
+step certificate create root.linkerd.cluster.local ca.crt ca.key \
+  --profile root-ca --no-password --insecure &amp;&amp;
+  kubectl create secret tls \
+    linkerd-trust-anchor \
+    --cert=ca.crt \
+    --key=ca.key \
+    --namespace=linkerd
+
+kubectl apply -f - &lt;&lt;EOF
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: linkerd-trust-anchor
+  namespace: linkerd
+spec:
+  ca:
+    secretName: linkerd-trust-anchor
+EOF
+
+kubectl apply -f - &lt;&lt;EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: linkerd-identity-issuer
+  namespace: linkerd
+spec:
+  secretName: linkerd-identity-issuer
+  duration: 48h
+  renewBefore: 25h
+  issuerRef:
+    name: linkerd-trust-anchor
+    kind: Issuer
+  commonName: identity.linkerd.cluster.local
+  dnsNames:
+  - identity.linkerd.cluster.local
+  isCA: true
+  privateKey:
+    algorithm: ECDSA
+  usages:
+  - cert sign
+  - crl sign
+  - server auth
+  - client auth
+EOF
+
+# 查看轮换事件
+kubectl get events --field-selector reason=IssuerUpdated -n linkerd
+</code></pre>
+<p>使用的相关镜像可以使用如下命令获取</p>
+<pre><code class="language-shell">linkerd install --ignore-cluster | grep image: | sed -e 's/^ *//' | sort | uniq
+</code></pre>
+<p>结果是：</p>
+<pre><code class="language-shell">image:
+image: cr.l5d.io/linkerd/controller:stable-2.12.2
+image: cr.l5d.io/linkerd/policy-controller:stable-2.12.2
+image: cr.l5d.io/linkerd/proxy-init:v2.0.0
+image: cr.l5d.io/linkerd/proxy:stable-2.12.2
+</code></pre>
+<p>github上的公开仓库是 <a href="https://github.com/orgs/linkerd/packages">GitHub Container Registry.</a></p>
+<h3 id="安装完后执行检查">安装完后执行检查</h3>
+<pre><code class="language-shell">linkerd check
+</code></pre>
+<h2 id="安装viz插件">安装viz插件</h2>
+<pre><code class="language-shell">linkerd viz install | kubectl apply -f -
+</code></pre>
+<p>如果因为网络原因，需要使用私有仓库，需要使用以下命令导出yaml，手动修改yaml后安装</p>
+<pre><code class="language-shell">linkerd viz install &gt; viz.yaml
+# 修改yaml后执行安装
+kubectl apply -f viz.yaml
+</code></pre>
+<h2 id="注入">注入</h2>
+<ul>
+<li>整个 namespace 启用注解</li>
+</ul>
+<pre><code class="language-yaml">annotations:
+        config.linkerd.io/enable-debug-sidecar: &quot;true&quot;
+        linkerd.io/inject: enabled
+</code></pre>
+<ul>
+<li>在编排文件的 deployment 的 spec.template  里直接添加</li>
+</ul>
+<pre><code class="language-yaml">annotations:
+        config.linkerd.io/enable-debug-sidecar: &quot;true&quot;   # 用于 debug 
+        linkerd.io/inject: enabled # 注入 Linkerd proxy
+</code></pre>
+<h3 id="查看哪些pod注入了linkerd-proxy">查看哪些pod注入了linkerd-proxy</h3>
+<pre><code class="language-shell">kubectl get pods -n juzi-saas -o jsonpath='{range .items[*]}{.metadata.name}{&quot;\t&quot;}{.spec.containers[*].name}{&quot;\n&quot;}{end}' | grep linkerd
+</code></pre>
+<p>当然，控制面板上也可以看</p>
+<h2 id="删除linkerd-viz">删除linkerd-viz</h2>
+<pre><code class="language-shell">linkerd viz uninstall | kubectl delete -f -
+</code></pre>
+<p>但是有的时候会卡住的情况。我的经历如下</p>
+<ol>
+<li>卡住后，我执行了 <code>kubectl delete ns linkerd-viz --force --grace-period=0</code> 强制删除与<code>linkerd-viz</code>相关的一切资源。</li>
+<li>但是又报错了</li>
+</ol>
+<pre><code class="language-shell">unable to retrieve the complete list of server APIs: metrics.k8s.io/v1beta1: the server is currently unable to handle the request
+</code></pre>
+<p>然后询问了chatgpt后得到的答案如下</p>
+<pre><code class="language-text">这个错误通常表示Kubernetes的metrics-server出现了问题，导致Kubernetes API服务无法提供metrics.k8s.io/v1beta1 API。这可能会影响Kubernetes Dashboard、kubectl top等工具的使用。
+
+要解决这个问题，您可以尝试以下步骤：
+
+检查metrics-server是否正常运行：使用以下命令检查metrics-server的状态：
+
+kubectl get pods -n kube-system | grep metrics-server
+如果输出结果中的metrics-server Pod处于Running状态，则表示metrics-server正在正常运行。如果它处于Pending状态，则可能是由于资源不足或网络问题导致的。
+
+重启metrics-server：如果metrics-server未能正常运行，您可以尝试重启它。使用以下命令重启metrics-server：
+
+kubectl delete deployment metrics-server -n kube-system
+然后，等待一段时间，让Kubernetes重新启动metrics-server的Pod。您可以使用以下命令检查metrics-server是否成功启动：
+
+kubectl get pods -n kube-system | grep metrics-server
+如果metrics-server Pod处于Running状态，则表示metrics-server已经成功启动。
+
+更新metrics-server：如果重启metrics-server无法解决问题，您可以尝试更新metrics-server。使用以下命令更新metrics-server：
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.5.0/components.yaml
+该命令将下载并安装metrics-server v0.5.0版本。如果metrics-server已经是最新版本，则该命令不会产生任何效果。
+
+检查Kubernetes API服务器：如果上述步骤都无法解决问题，则可能是Kubernetes API服务器出现了问题。您可以检查API服务器的日志以获取更多信息。
+
+通过上述步骤，您可以尝试解决unable to retrieve the complete list of server APIs: metrics.k8s.io/v1beta1: the server is currently unable to handle the request的问题，并恢复Kubernetes的metrics.k8s.io/v1beta1 API的正常运行。
+</code></pre>
+<ol start="3">
+<li>解决了上述问题后，执行下面的命令，就可以成功删除linkerd-viz了</li>
+</ol>
+<pre><code class="language-shell">linkerd viz uninstall | kubectl delete -f -
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/kujC4XD2i/">
+                  <h3 class="post-title">
+                    ChatGPT 初探
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

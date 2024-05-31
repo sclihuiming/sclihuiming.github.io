@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>TCP长连接黑洞重现 | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1717120064416">
+<link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140235358-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1717120064416" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">TCP长连接黑洞重现</h2>
+            <div class="post-date">2024-05-30</div>
+            
+            <div class="post-content">
+              <p>服务器无响应900s后断开连接</p>
+<h2 id="复现步骤">复现步骤</h2>
+<ol>
+<li>创建一个桥接网络</li>
+</ol>
+<pre><code class="language-shell">docker network create --driver=bridge --subnet=172.100.0.0/16 br0
+</code></pre>
+<ol start="2">
+<li>启动2个nginx容器</li>
+</ol>
+<pre><code class="language-shell">docker run -d --name nginx1 --ip 172.100.1.1 --net=br0 nginx
+docker run -d --name nginx2 --ip 172.100.1.2 --net=br0 nginx
+</code></pre>
+<ol start="3">
+<li>使用LVS创建一个负载均衡器并且将流量导向172.100.1.1:80</li>
+</ol>
+<pre><code class="language-shell">ipvsadm -A-t 100.100.100.100:80 -s rr
+ipvsadm -a -t 100.100.100.100:80 -r 172.100.1.1:80 -m -w 1
+</code></pre>
+<ol start="4">
+<li>查看状态信息</li>
+</ol>
+<pre><code class="language-shell">ipvsadm -ln
+&gt; IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -&gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  100.100.100.100:80 rr
+  -&gt; 172.100.1.1:80               Masq    1      0          0         
+  -&gt; 172.100.1.2:80               Masq    1      0          0  
+</code></pre>
+<ol start="5">
+<li>将来自 IP 地址为 172.100.1.1 的流量丢弃（DROP），即拒绝接收来自这个特定 IP 地址的所有入站数据包。这里是模拟程序或者服务突然挂掉，还没有来得及向客户端发送reset包</li>
+</ol>
+<pre><code class="language-shell">iptables -A INPUT -s 172.100.1.1 -j DROP
+</code></pre>
+<ol start="6">
+<li>LVS将流量切到172.100.1.2:80</li>
+</ol>
+<pre><code class="language-shell">ipvsadm -a -t 100.100.100.100:80 -r 172.100.1.2:80 -m -w 1
+</code></pre>
+<ol start="7">
+<li>旧的长连接没有响应</li>
+</ol>
+<pre><code class="language-shell">nc 100.100.100.100 80
+</code></pre>
+<ol start="8">
+<li>新开的窗口通过负载均衡走到172.100.1.2:80的这台机器上了，成功响应</li>
+</ol>
+<pre><code class="language-shell">nc 100.100.100.100 80
+</code></pre>
+<p>以上就成功复现了，服务突然挂掉后，客户端没有收到相关的ack或者reset包，导致链接一直在重试，直到900s后才正常。 而新的连接，通过负载均衡器连接到正常的服务器，所以能正常工作。</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://sclihuiming.github.io/tag/PU-yKcFsh/" class="tag">
+                    踩坑系列
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/H3YJa6ZHb/">
+                  <h3 class="post-title">
+                    Linkerd初探
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

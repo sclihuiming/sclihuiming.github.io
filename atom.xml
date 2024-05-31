@@ -1,0 +1,2163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://sclihuiming.github.io</id>
+    <title>pmlov</title>
+    <updated>2024-05-31T01:47:47.311Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://sclihuiming.github.io"/>
+    <link rel="self" href="https://sclihuiming.github.io/atom.xml"/>
+    <subtitle>JUST DO IT</subtitle>
+    <logo>https://sclihuiming.github.io/images/avatar.png</logo>
+    <icon>https://sclihuiming.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, pmlov</rights>
+    <entry>
+        <title type="html"><![CDATA[TCP长连接黑洞重现]]></title>
+        <id>https://sclihuiming.github.io/post/gekec54Wc/</id>
+        <link href="https://sclihuiming.github.io/post/gekec54Wc/">
+        </link>
+        <updated>2024-05-30T08:58:58.000Z</updated>
+        <content type="html"><![CDATA[<p>服务器无响应900s后断开连接</p>
+<h2 id="复现步骤">复现步骤</h2>
+<ol>
+<li>创建一个桥接网络</li>
+</ol>
+<pre><code class="language-shell">docker network create --driver=bridge --subnet=172.100.0.0/16 br0
+</code></pre>
+<ol start="2">
+<li>启动2个nginx容器</li>
+</ol>
+<pre><code class="language-shell">docker run -d --name nginx1 --ip 172.100.1.1 --net=br0 nginx
+docker run -d --name nginx2 --ip 172.100.1.2 --net=br0 nginx
+</code></pre>
+<ol start="3">
+<li>使用LVS创建一个负载均衡器并且将流量导向172.100.1.1:80</li>
+</ol>
+<pre><code class="language-shell">ipvsadm -A-t 100.100.100.100:80 -s rr
+ipvsadm -a -t 100.100.100.100:80 -r 172.100.1.1:80 -m -w 1
+</code></pre>
+<ol start="4">
+<li>查看状态信息</li>
+</ol>
+<pre><code class="language-shell">ipvsadm -ln
+&gt; IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -&gt; RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  100.100.100.100:80 rr
+  -&gt; 172.100.1.1:80               Masq    1      0          0         
+  -&gt; 172.100.1.2:80               Masq    1      0          0  
+</code></pre>
+<ol start="5">
+<li>将来自 IP 地址为 172.100.1.1 的流量丢弃（DROP），即拒绝接收来自这个特定 IP 地址的所有入站数据包。这里是模拟程序或者服务突然挂掉，还没有来得及向客户端发送reset包</li>
+</ol>
+<pre><code class="language-shell">iptables -A INPUT -s 172.100.1.1 -j DROP
+</code></pre>
+<ol start="6">
+<li>LVS将流量切到172.100.1.2:80</li>
+</ol>
+<pre><code class="language-shell">ipvsadm -a -t 100.100.100.100:80 -r 172.100.1.2:80 -m -w 1
+</code></pre>
+<ol start="7">
+<li>旧的长连接没有响应</li>
+</ol>
+<pre><code class="language-shell">nc 100.100.100.100 80
+</code></pre>
+<ol start="8">
+<li>新开的窗口通过负载均衡走到172.100.1.2:80的这台机器上了，成功响应</li>
+</ol>
+<pre><code class="language-shell">nc 100.100.100.100 80
+</code></pre>
+<p>以上就成功复现了，服务突然挂掉后，客户端没有收到相关的ack或者reset包，导致链接一直在重试，直到900s后才正常。 而新的连接，通过负载均衡器连接到正常的服务器，所以能正常工作。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Linkerd初探]]></title>
+        <id>https://sclihuiming.github.io/post/H3YJa6ZHb/</id>
+        <link href="https://sclihuiming.github.io/post/H3YJa6ZHb/">
+        </link>
+        <updated>2023-03-01T05:56:15.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="文档">文档</h2>
+<p><a href="https://linkerd.hacker-linner.com/2.11/overview/">Linkerd 2.11 中文文档</a><br>
+<a href="https://linkerd.io/2.12/getting-started/">Linkerd 英文文档</a></p>
+<p><em>各个版本的文档执行的命令有一些细微的差别</em></p>
+<pre><code class="language-shell"># 2.12 比 2.11的安装步骤多一个
+linkerd install --crds | kubectl apply -f -
+</code></pre>
+<h2 id="安装步骤">安装步骤</h2>
+<p><strong>以下的实例是使用linkerd 2.12版本的文档</strong>  链接： <a href="https://linkerd.io/2.12/getting-started/">2.12 getting started</a></p>
+<h3 id="安装linkerd并且进行前置检查">安装linkerd并且进行前置检查</h3>
+<pre><code class="language-shell">kubectl version --short
+
+brew install linkerd
+
+linkerd version
+
+linkerd check --pre
+</code></pre>
+<h3 id="k8s中安装linkerd">k8s中安装linkerd</h3>
+<pre><code class="language-shell">linkerd install --crds | kubectl apply -f -
+
+# 使用默认仓库
+linkerd install | kubectl apply -f -
+
+# 或者使用私有仓库 
+# --identity-external-issuer  该标志指示 Linkerd 从 linkerd-identity-issuer secret 读取证书
+# --ha 高可用
+# --registry 使用指定仓库
+linkerd install --identity-external-issuer --ha --set proxyInit.runAsRoot=true --registry my-private/k8s/linkerd/ | kubectl apply -f -
+</code></pre>
+<p>如果要使用<code>--identity-external-issuer </code>这个标识，需要先开启<a href="https://linkerd.hacker-linner.com/2.11/tasks/automatically-rotating-control-plane-tls-credentials/#">自动轮换控制平面 TLS 凭证</a></p>
+<pre><code class="language-shell"># 安装cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+
+#
+kubectl create namespace linkerd
+
+step certificate create root.linkerd.cluster.local ca.crt ca.key \
+  --profile root-ca --no-password --insecure &amp;&amp;
+  kubectl create secret tls \
+    linkerd-trust-anchor \
+    --cert=ca.crt \
+    --key=ca.key \
+    --namespace=linkerd
+
+kubectl apply -f - &lt;&lt;EOF
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: linkerd-trust-anchor
+  namespace: linkerd
+spec:
+  ca:
+    secretName: linkerd-trust-anchor
+EOF
+
+kubectl apply -f - &lt;&lt;EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: linkerd-identity-issuer
+  namespace: linkerd
+spec:
+  secretName: linkerd-identity-issuer
+  duration: 48h
+  renewBefore: 25h
+  issuerRef:
+    name: linkerd-trust-anchor
+    kind: Issuer
+  commonName: identity.linkerd.cluster.local
+  dnsNames:
+  - identity.linkerd.cluster.local
+  isCA: true
+  privateKey:
+    algorithm: ECDSA
+  usages:
+  - cert sign
+  - crl sign
+  - server auth
+  - client auth
+EOF
+
+# 查看轮换事件
+kubectl get events --field-selector reason=IssuerUpdated -n linkerd
+</code></pre>
+<p>使用的相关镜像可以使用如下命令获取</p>
+<pre><code class="language-shell">linkerd install --ignore-cluster | grep image: | sed -e 's/^ *//' | sort | uniq
+</code></pre>
+<p>结果是：</p>
+<pre><code class="language-shell">image:
+image: cr.l5d.io/linkerd/controller:stable-2.12.2
+image: cr.l5d.io/linkerd/policy-controller:stable-2.12.2
+image: cr.l5d.io/linkerd/proxy-init:v2.0.0
+image: cr.l5d.io/linkerd/proxy:stable-2.12.2
+</code></pre>
+<p>github上的公开仓库是 <a href="https://github.com/orgs/linkerd/packages">GitHub Container Registry.</a></p>
+<h3 id="安装完后执行检查">安装完后执行检查</h3>
+<pre><code class="language-shell">linkerd check
+</code></pre>
+<h2 id="安装viz插件">安装viz插件</h2>
+<pre><code class="language-shell">linkerd viz install | kubectl apply -f -
+</code></pre>
+<p>如果因为网络原因，需要使用私有仓库，需要使用以下命令导出yaml，手动修改yaml后安装</p>
+<pre><code class="language-shell">linkerd viz install &gt; viz.yaml
+# 修改yaml后执行安装
+kubectl apply -f viz.yaml
+</code></pre>
+<h2 id="注入">注入</h2>
+<ul>
+<li>整个 namespace 启用注解</li>
+</ul>
+<pre><code class="language-yaml">annotations:
+        config.linkerd.io/enable-debug-sidecar: &quot;true&quot;
+        linkerd.io/inject: enabled
+</code></pre>
+<ul>
+<li>在编排文件的 deployment 的 spec.template  里直接添加</li>
+</ul>
+<pre><code class="language-yaml">annotations:
+        config.linkerd.io/enable-debug-sidecar: &quot;true&quot;   # 用于 debug 
+        linkerd.io/inject: enabled # 注入 Linkerd proxy
+</code></pre>
+<h3 id="查看哪些pod注入了linkerd-proxy">查看哪些pod注入了linkerd-proxy</h3>
+<pre><code class="language-shell">kubectl get pods -n juzi-saas -o jsonpath='{range .items[*]}{.metadata.name}{&quot;\t&quot;}{.spec.containers[*].name}{&quot;\n&quot;}{end}' | grep linkerd
+</code></pre>
+<p>当然，控制面板上也可以看</p>
+<h2 id="删除linkerd-viz">删除linkerd-viz</h2>
+<pre><code class="language-shell">linkerd viz uninstall | kubectl delete -f -
+</code></pre>
+<p>但是有的时候会卡住的情况。我的经历如下</p>
+<ol>
+<li>卡住后，我执行了 <code>kubectl delete ns linkerd-viz --force --grace-period=0</code> 强制删除与<code>linkerd-viz</code>相关的一切资源。</li>
+<li>但是又报错了</li>
+</ol>
+<pre><code class="language-shell">unable to retrieve the complete list of server APIs: metrics.k8s.io/v1beta1: the server is currently unable to handle the request
+</code></pre>
+<p>然后询问了chatgpt后得到的答案如下</p>
+<pre><code class="language-text">这个错误通常表示Kubernetes的metrics-server出现了问题，导致Kubernetes API服务无法提供metrics.k8s.io/v1beta1 API。这可能会影响Kubernetes Dashboard、kubectl top等工具的使用。
+
+要解决这个问题，您可以尝试以下步骤：
+
+检查metrics-server是否正常运行：使用以下命令检查metrics-server的状态：
+
+kubectl get pods -n kube-system | grep metrics-server
+如果输出结果中的metrics-server Pod处于Running状态，则表示metrics-server正在正常运行。如果它处于Pending状态，则可能是由于资源不足或网络问题导致的。
+
+重启metrics-server：如果metrics-server未能正常运行，您可以尝试重启它。使用以下命令重启metrics-server：
+
+kubectl delete deployment metrics-server -n kube-system
+然后，等待一段时间，让Kubernetes重新启动metrics-server的Pod。您可以使用以下命令检查metrics-server是否成功启动：
+
+kubectl get pods -n kube-system | grep metrics-server
+如果metrics-server Pod处于Running状态，则表示metrics-server已经成功启动。
+
+更新metrics-server：如果重启metrics-server无法解决问题，您可以尝试更新metrics-server。使用以下命令更新metrics-server：
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.5.0/components.yaml
+该命令将下载并安装metrics-server v0.5.0版本。如果metrics-server已经是最新版本，则该命令不会产生任何效果。
+
+检查Kubernetes API服务器：如果上述步骤都无法解决问题，则可能是Kubernetes API服务器出现了问题。您可以检查API服务器的日志以获取更多信息。
+
+通过上述步骤，您可以尝试解决unable to retrieve the complete list of server APIs: metrics.k8s.io/v1beta1: the server is currently unable to handle the request的问题，并恢复Kubernetes的metrics.k8s.io/v1beta1 API的正常运行。
+</code></pre>
+<ol start="3">
+<li>解决了上述问题后，执行下面的命令，就可以成功删除linkerd-viz了</li>
+</ol>
+<pre><code class="language-shell">linkerd viz uninstall | kubectl delete -f -
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[ChatGPT 初探]]></title>
+        <id>https://sclihuiming.github.io/post/kujC4XD2i/</id>
+        <link href="https://sclihuiming.github.io/post/kujC4XD2i/">
+        </link>
+        <updated>2022-12-03T16:02:14.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="访问-httpschatopenaicom-出现not-available的错误">访问 <a href="https://chat.openai.com/">https://chat.openai.com/</a> 出现<code>Not available</code>的错误</h2>
+<figure data-type="image" tabindex="1"><img src="https://sclihuiming.github.io/post-images/1674920895588.png" alt="" loading="lazy"></figure>
+<p><strong>解决方案</strong></p>
+<pre><code class="language-javascript"># 在地址栏先输入 javascript:
+# 然后在后面复制如下的代码 window.localStorage.removeItem(Object.keys(window.localStorage).find(i=&gt;i.startsWith('@@auth0spajs')))
+# 然后按下回车键，接着刷新页面，如果你的代理没问题，就可以正常看到注册页面了。
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://sclihuiming.github.io/post-images/1674921152303.png" alt="" loading="lazy"></figure>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[k8s-tutorials]]></title>
+        <id>https://sclihuiming.github.io/post/seyLrOPwE/</id>
+        <link href="https://sclihuiming.github.io/post/seyLrOPwE/">
+        </link>
+        <updated>2022-11-16T15:10:04.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="踩坑记录">踩坑记录</h1>
+<h2 id="macos">macOS</h2>
+<ul>
+<li>Docker for Mac 17.12+ 启用 k8s 之后会在 <code>/usr/local/bin</code> 放入 <code>kubectl</code>，所以你无需安装。</li>
+<li>Docker for Mac 自带 <code>k8s</code> 会与 <code>minikube</code> 冲突，可以使用以下命令切换。</li>
+</ul>
+<h2 id="centos">centos</h2>
+<p>使用国内源的时候注意要指定<code>--kubernetes-version</code>的版本，否则会报出一系列的超时错误，具体原因不知道，我服务器上切换到<code>v1.23.0</code>之后就稳定运行起来了。<br>
+<code>centos</code>中启动<code>minikube</code>的时候 <code>--vm-driver</code>默认值就是<code>docker</code></p>
+<pre><code class="language-shell">minikube start \
+ --image-mirror-country=cn \
+ --registry-mirror='https://t9ab0rkd.mirror.aliyuncs.com' \
+ --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers' \
+ --vm-driver=docker \
+ --kubernetes-version v1.23.0
+</code></pre>
+<p>以上这种方式启动的<code>--vm-driver=docker</code>实在docker里面运行这minikube的容器，这样无法直接通过宿主机直接访问minikube里面部署的服务，无法使用<code>NodePort</code>来进行测试访问。</p>
+<p>可以使用<code>--vm-driver=none</code>来进行minikube服务的启动。其中相关问题解答在这里<a href="https://www.qiniu.com/qfans/qnso-64881583">如何使用minikube主机的公共ip地址访问外部服务?</a></p>
+<h3 id="centos安装-kubelet-kubeadm-kubectl">centos安装 kubelet kubeadm kubectl</h3>
+<pre><code class="language-shell">cat &lt;&lt;EOF &gt; /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+
+setenforce 0
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+systemctl enable kubelet &amp;&amp; systemctl start kubelet
+
+## 另外，你也可以指定版本安装
+## yum install kubectl-1.21.3-0.x86_64 kubeadm-1.21.3-0.x86_64 kubelet-1.21.3-0.x86_64
+</code></pre>
+<p><em>ps: 由于官网未开放同步方式, 可能会有索引gpg检查失败的情况, 这时请用 <code>yum install -y --nogpgcheck kubelet kubeadm kubectl</code> 安装</em></p>
+<h2 id="kubectl-port-forward">kubectl port-forward</h2>
+<pre><code class="language-shell">kubectl port-forward hellok8s 3000:3000
+</code></pre>
+<p>以上命令默认监听地址为<code>localhost</code>。如果设置为localhost，那么k8s会监听127.0.0.1和::1这两个地址。我本地访问服务器的3000端口，会失败。</p>
+<pre><code class="language-shell">kubectl port-forward --address=0.0.0.0 hellok8s 3000:3000
+</code></pre>
+<p>以上命令可监听任意地址， 使用这个命令，我本地便可以访问服务器的3000端口了。详情可以使用<code>kubectl port-forward --help</code>查看.</p>
+<h2 id="nodeport">nodePort</h2>
+<p>nodePort设置后，发现<code>ip:端口</code>不能访问到服务，需要执行</p>
+<pre><code class="language-shell">iptables -P FORWARD ACCEPT
+</code></pre>
+<h1 id="命令">命令</h1>
+<h3 id="查看以及切换">查看以及切换</h3>
+<pre><code class="language-shell">kubectl config get-contexts
+</code></pre>
+<h3 id="切换到docker自带的k8s">切换到docker自带的k8s</h3>
+<pre><code class="language-shell">kubectl config use-context docker-for-desktop
+</code></pre>
+<h3 id="切换到minikube">切换到miniKube</h3>
+<pre><code class="language-shell">kubectl config use-context minikube
+</code></pre>
+<h3 id="汇总">汇总</h3>
+<pre><code class="language-shell"># 应用配置文件
+kubectl apply -f deployment.yaml
+
+# 回滚到上一次版本
+kubectl rollout undo deployment hellok8s-deployment
+
+# 查看历史版本
+kubectl rollout history deployment hellok8s-deployment
+
+# 回滚到指定版本
+kubectl rollout undo deployment/hellok8s-deployment --to-revision=2
+
+# 查看Endpoint
+kubectl get endpoints
+
+# 获取 Pod 更多的信息
+kubectl get pod -o wide
+
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[「排障系列」Node gRPC 静态生成文件引发的问题]]></title>
+        <id>https://sclihuiming.github.io/post/1QQ2uIjZz/</id>
+        <link href="https://sclihuiming.github.io/post/1QQ2uIjZz/">
+        </link>
+        <updated>2022-09-23T02:59:06.000Z</updated>
+        <summary type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>目前正在修改的<code>xiaoju-bot</code>项目，使用<code>uni-q-payload</code>项目中的proto生成的js代码，当前正在做的内容是，监听<code>wechaty</code>的dong事件，根据返回的朋友圈事件，使用<code>uni-q-payload</code>封装好的代码序列化后放进队列，供<code>automation</code>项目使用。</p>
+]]></summary>
+        <content type="html"><![CDATA[<h2 id="背景">背景</h2>
+<p>目前正在修改的<code>xiaoju-bot</code>项目，使用<code>uni-q-payload</code>项目中的proto生成的js代码，当前正在做的内容是，监听<code>wechaty</code>的dong事件，根据返回的朋友圈事件，使用<code>uni-q-payload</code>封装好的代码序列化后放进队列，供<code>automation</code>项目使用。</p>
+<!-- more -->
+<p>之前<code>xiaoju-bot</code>使用这个<code>uni-q-payload</code>都是正常使用的，不会报任何错。但是这次接入了dong事件后，<code>xiaoju-bot</code>启动就会报错，具体错误如下：</p>
+<pre><code class="language-shell">22:17:40 INFO PuppetService stopGrpcStream()
+22:17:40 INFO PuppetService stopGrpcStream() finished
+22:17:40 ERR PuppetService start() rejection: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StartRequest')
+Error: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StartRequest')
+    at Object.callErrorFromStatus (/Users/mac/Documents/juzi/gitlab/xiaoju-bot/node_modules/@grpc/grpc-js/src/call.ts:81:24)
+    ...
+22:17:40 WARN Puppet reset() exception: Error: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StartRequest')
+22:17:40 ERR errorListener Error happened:
+Error
+    at PuppetService.&lt;anonymous&gt; (/Users/mac/Documents/juzi/gitlab/xiaoju-bot/node_modules/wechaty/src/wechaty.ts:444:32)
+    ...
+22:17:40 ERR PuppetService stop() stop GRPC rejection: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StopRequest')
+</code></pre>
+<p>但是如果移出本次写的逻辑，xiaoju-bot可以正常使用.</p>
+<pre><code class="language-typescript">import { BOT_CONFIG, log } from '../config';
+import { BotDongEventType, MomentType, DongEvent } from '../model';
+import { RequestPool } from '../service/request_pool_manager';
+import { MomentPublish } from '../service/mq/publishHandler/moment_publish';
+
+const PRE = 'dongListener';
+
+export const dongListener = async (data?: string) =&gt; {
+  ...
+  try {
+    const resInfo = JSON.parse(data);
+    dispatchMessage(resInfo);
+  } catch (e) {
+    log.error(PRE, `dong message dispatch error, botId: ${BOT_CONFIG.BOT_ID}, message: ${data}, error: ${e?.message}`);
+  }
+};
+
+function dispatchMessage (data) {
+  ...
+  switch (api) {
+    case DongEvent.MOMENT_EVENT:
+      void MomentPublish.dispatchEventPayload(result);
+      break;
+    default:
+      ...
+  }
+}
+</code></pre>
+<h2 id="初步定位">初步定位</h2>
+<ol>
+<li>首先通过逐渐删除本次增加内容，尤其是import导入的模块，发现，只要把<code>uni-q-payload</code>的相关引用去掉，<code>xiaoju-bot</code>能够正常运行。反之，加上就不行。（所以怀疑<code>uni-q-payload</code>打包有问题）</li>
+<li>搜索错误 <code>13 INTERNAL: Request message serialization failure: </code> 找到了这篇文章<a href="https://zhuanlan.zhihu.com/p/368216922">「排障系列」记一次 Node gRPC 静态生成文件引发的问题</a> ，该文章描述了，2个不同模块使用了同一个npm包的不同版本（该npm里面就是proto生成的js代码），导致的上述错误，主要的原因就是2个不同版本由于proto的命名冲突导致的全局变量被覆盖然后在序列化的时候出现了该问题。<br>
+所有我根据这个线索一直查找<code>uni-q-payload</code>中是否有与<code>puppt-service</code>引用的grpc（wechaty-grpc）命令冲突的地方，然而并没有找到相关线索，此处耗费大量时间。。。</li>
+</ol>
+<h2 id="深入探索">深入探索</h2>
+<h3 id="线索一puppetservice">线索一：PuppetService</h3>
+<p>这里面并没有太多有用的东西，只是顺着他找到了<code>wechaty-grpc</code>模块，这也是真正出错的地方</p>
+<h3 id="线索二cannot-read-properties-of-undefined-reading-startrequest">线索二：Cannot read properties of undefined (reading 'StartRequest')</h3>
+<p>该报错就来自于<code>wechaty-grpc</code>模块。报错入口来自于puppet-service.js的这个方法</p>
+<pre><code class="language-typescript">await this.grpcClientStart();
+
+async grpcClientStart() {
+    try {
+        const a = new wechaty_grpc_1.StartRequest();
+        await util_1.default.promisify(this.grpcClient.start
+            .bind(this.grpcClient))(new wechaty_grpc_1.StartRequest());
+    }
+    catch (error) {
+        ...
+    }
+}
+
+// base_pb.js
+proto.wechaty.puppet.StartRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  // 这里的打印，显示proto.wechaty.puppet已经是undefined了，所以他肯定是被覆盖了。
+  console.log('aaaaa', proto.wechaty);
+  // 这个地方就是报错的地方
+  proto.wechaty.puppet.StartRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+</code></pre>
+<h4 id="线索三protowechatypuppet为undefined">线索三：proto.wechaty.puppet为undefined</h4>
+<p>结合上面dong里面的关于<code>uni-q-payload</code>引用，来调试 proto.wechaty.puppet为什么会被覆盖。<br>
+<img src="https://sclihuiming.github.io/post-images/1663902456202.png" alt="" loading="lazy"></p>
+<p>可以看到，最开始的时候proto.wechaty.puppet是会被赋值的，然后断点会接着进入uni-q-payload的赋值</p>
+<figure data-type="image" tabindex="1"><img src="https://sclihuiming.github.io/post-images/1663902483299.png" alt="" loading="lazy"></figure>
+<p>可以看到，<code>uni-q-payload</code>的变量与<code>wechaty-grpc</code>的变量是没有冲突的。</p>
+<pre><code class="language-text">proto.wechaty.puppet.StartRequest
+proto.uni_q_payload.wechaty.PostTextMomentActionPayload
+</code></pre>
+<p>到这里，其实都还是没有找到为什么会覆盖，其实最后的结果就是<code>proto.wechaty.puppet.*</code>的值，就是被<code>proto.uni_q_payload.wechaty.*</code>的值覆盖的。<br>
+因为最后还会进入<code>uni-q-payload</code>的index_pb.js的引用，该文件变量定义如下：</p>
+<figure data-type="image" tabindex="2"><img src="https://sclihuiming.github.io/post-images/1663902552167.png" alt="" loading="lazy"></figure>
+<p>这个其实也没有什么问题，与proto.wechaty.puppet变量不相同。引起变量覆盖的是下面这一行代码：</p>
+<figure data-type="image" tabindex="3"><img src="https://sclihuiming.github.io/post-images/1663902573919.png" alt="" loading="lazy"></figure>
+<p>在 <code>exports</code> 上挂载 <code>proto.uni-q-payload</code> 对象作为导出。</p>
+<figure data-type="image" tabindex="4"><img src="https://sclihuiming.github.io/post-images/1663902613251.png" alt="" loading="lazy"></figure>
+<p>此时的proto.uni-q-payload的结构如上图所示。<br>
+<strong>goog.object.extend(exports, proto.uni_q_payload)会把proto.uni_q_payload的结构都挂在到proto上去，相当于了去掉了uni-q-payload。那么当执行了这个语句后，原来的proto.wechaty就被proto.uni-q-payload.wechaty覆盖了。</strong></p>
+<p>至此，问题找到。</p>
+<h2 id="解决方案">解决方案</h2>
+<ol>
+<li>
+<p>调整加载顺序，我把dong的引入放在puppet-service之前，在覆盖的时候wechaty-grpc还没有挂在全局变量，就不会覆盖。<br>
+<img src="https://sclihuiming.github.io/post-images/1663902704237.png" alt="" loading="lazy"><br>
+但是此方案，不优雅，也不实用，容易被其他同事移动位置，然后报错。所以放弃。</p>
+</li>
+<li>
+<p>更改uni-q-payload中关于wechaty的包名，尽量特殊一点，或者层次结构调整，应该需要automation那边项目一起改下包名，工作量还好，需要同事配合下。</p>
+</li>
+</ol>
+<figure data-type="image" tabindex="5"><img src="https://sclihuiming.github.io/post-images/1663902715071.png" alt="" loading="lazy"></figure>
+<p>以上方案，验证可行</p>
+<h2 id="经验">经验</h2>
+<ol>
+<li>包名尽量唯一，考虑重复的可能</li>
+<li>考虑了第一点后，还要考虑是不是会被其他方式覆盖包名</li>
+</ol>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[mac tips]]></title>
+        <id>https://sclihuiming.github.io/post/pxkwc8yjv/</id>
+        <link href="https://sclihuiming.github.io/post/pxkwc8yjv/">
+        </link>
+        <updated>2020-07-01T03:18:22.000Z</updated>
+        <summary type="html"><![CDATA[<p>新的macbook拿到手，需要做的事情清单</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>新的macbook拿到手，需要做的事情清单</p>
+<!-- more --> 
+<h1 id="u-disk-installer">U disk installer</h1>
+<p>sudo /Applications/Install\ macOS\ Sierra.app/Contents/Resources/createinstallmedia --volume /Volumes/Install\ macOS --applicationpath /Applications/Install\ macOS\ Sierra.app --nointeraction</p>
+<p>重启 按住option</p>
+<p>sudo （以临时root权限来运行）createinstallmedia这个文件  来执行 --applicationpath （程序解压命令） 解压这个文件 Yosemite.app  --volume到挂载点 （U盘路径） 参数--nointeraction （免去交互）</p>
+<h1 id="app-store-下载慢-v2ex-域名">app store 下载慢? v2ex 域名</h1>
+<p>改dns: 178.79.131.110</p>
+<h1 id="istat">iStat</h1>
+<p>9665-5955-6856-2071-0000</p>
+<h1 id="webstorm-config-go">webstorm config go</h1>
+<p>brew install go<br>
+vi .zshrc<br>
+export GOPATH=/Users/create/Documents/golang<br>
+export GOROOT=/usr/local/bin/go</p>
+<p>set go sdk<br>
+/usr/local/Cellar/go/1.5.2</p>
+<h1 id="active-webstorm">active webstorm</h1>
+<p>http://idea.lanyus.com</p>
+<h1 id="个人设置">个人设置:</h1>
+<h1 id="1trackpad">1.Trackpad</h1>
+<p>Point&amp;Click<br>
+Tap to click</p>
+<p>More Gestures:<br>
+select App Expose<br>
+// 选中其他需要的东西</p>
+<h1 id="2三指拖动">2.三指拖动</h1>
+<p>Accessibility<br>
+Mouse &amp; Trackpad<br>
+Trackpad Options<br>
+Enable dragging with three finger drag.</p>
+<h1 id="按钮焦点">按钮焦点</h1>
+<p>Keyboard-&gt;Shortcuts-&gt;Text boxes and lists only|All controls</p>
+<h1 id="4禁用游客">4.禁用游客</h1>
+<p>Users &amp; Groups<br>
+// take the guest user off.</p>
+<h1 id="5iterm">5.iterm</h1>
+<p>Terminal Environment<br>
+uncheck :Set locale variables automatically<br>
+//set lc 中文乱码<br>
+export LC_ALL=&quot;en_US.UTF-8&quot;<br>
+echo &quot;export LC_ALL=en_US.UTF-8&quot; &gt;&gt; .zshrc</p>
+<h1 id="6禁止ds_store-需要重启">6.禁止.DS_Store (需要重启)</h1>
+<p>defaults write com.apple.desktopservices DSDontWriteNetworkStores true</p>
+<h1 id="7allow-apps-downloaded-from-everywhere">7.allow apps downloaded from everywhere</h1>
+<p>sudo spctl --master-disable</p>
+<h1 id="linux-ssh-key">linux ssh key:</h1>
+<p>用 ssh-key-gen 在本地主机上创建公钥和密钥<br>
+ssh-keygen -t  rsa<br>
+ssh-copy-id -i ~/.ssh/id_rsa.pub  root@192.168.0.3</p>
+<h1 id="quicklook-plugins">quicklook plugins:</h1>
+<p>https://github.com/sindresorhus/quick-look-plugins</p>
+<p>brew cask install qlcolorcode qlstephen qlmarkdown quicklook-json qlprettypatch quicklook-csv betterzipql qlimagesize webpquicklook suspicious-package provisionql</p>
+<p>qlmanage -r/-l</p>
+<h1 id="j">j</h1>
+<p>brew install automump<br>
+vim .zshrc<br>
+[[ -s <code>brew --prefix</code>/etc/autojump.sh ]] &amp;&amp; . <code>brew --prefix</code>/etc/autojump.sh</p>
+<h1 id="pgk-安装包">pgk 安装包</h1>
+<p>显示所有 pgk 安装包<br>
+pkgutil --pkgs<br>
+显示安装的文件<br>
+pkgutil --files xxx.xx.xx</p>
+<h1 id="alfred-custome-terminal">alfred custome terminal</h1>
+<p>https://github.com/stuartcryan/custom-iterm-applescripts-for-alfred</p>
+<h1 id="brew">brew</h1>
+<p>brew install git go redis mongodb htop vim wget curl</p>
+<h1 id="pages">pages</h1>
+<p>{<br>
+​    &quot;username&quot;: &quot;hello&quot;,<br>
+​    &quot;password&quot;: &quot;v9$Ipoa0@9OPfio@9&quot;<br>
+}</p>
+<h1 id="xcode-安装后执行">xcode 安装后执行</h1>
+<p>xcode-select --install</p>
+<h1 id="安装-java">安装 java</h1>
+<p>brew cask install java</p>
+<blockquote>
+<p>jdk目录在/Library/Java/JavaVirtualMachines/</p>
+</blockquote>
+<h1 id="vscode">vscode</h1>
+<h2 id="user-config">user config</h2>
+<p><code>{ ​    &quot;editor.fontSize&quot;: 15, ​    &quot;editor.fontFamily&quot;: &quot;Monaco, Menlo, 'Courier New', monospace&quot;, ​    &quot;workbench.colorTheme&quot;: &quot;Solarized Light&quot;, ​    &quot;workbench.iconTheme&quot;: &quot;vscode-great-icons&quot;, ​    &quot;editor.minimap.enabled&quot;: true, ​    &quot;editor.dragAndDrop&quot;: true }</code></p>
+<blockquote>
+<p>卸载 Instant Markdown<br>
+给Beautify设置快捷键, Preferences-&gt;Keyboard Shortcuts</p>
+</blockquote>
+<h2 id="install">install</h2>
+<blockquote>
+<p>Highlight Trailing White Spaces</p>
+</blockquote>
+<h2 id="应用合集">应用合集</h2>
+<ul>
+<li>
+<p>Cheat Sheet</p>
+<pre><code>你肯定想通过使用快捷键来简化操作。那么，这么多应用的快捷键怎么能都记住呢？其实，你根本不要去死记硬背，Cheat Sheet 可以帮助你一键查看当前应用所有的快捷键。只需要「长按 Command」，一个记录了所有快捷键的悬浮窗口就会出现，每次想用时打开看一眼就知道了，多用几次自然而言就记住了。
+</code></pre>
+</li>
+<li>
+<p>GIF Brewery 3</p>
+<pre><code>GIF 作为一种常见的格式，在我们的生活中扮演着一个重要的角色。有些人拿 GIF 图片来做文章中的演示，有些人则用 GIF 图片来制作搞笑表情包。其实，在 Mac 电脑上你也可以轻松简单地制作 GIF 图片，只需一个 GIF Brewery 3 就足够了。如果你的需求很简单，GIF Brewery 3 可以直接将导入的视频或者录屏转制为 GIF 图片；如果你有进阶的需求，那么 GIF Brewery 3 可以设定完整的参数，还可以添加字幕，满足你对 GIF 制作所有的要求。
+</code></pre>
+</li>
+<li>
+<p>Typora</p>
+<pre><code>想用 Markdown 写作却不想一开始就购买昂贵的 Markdown 编辑器的你，不妨试一试免费又好用的 Typora。虽然免费，但是 Typora 的功能丝毫不含糊，表格插入、代码和数学公式输入、目录大纲支持等高级功能一个都不少。不过，Typora 又有别于一般的 Markdown 编辑器，因为它采用了 WYSIWYG（What You See Is What You Get）的模式，你输入的 Markdown 语句会立刻自动转换为相应的富文本，这其实对 Markdown 新手来说更加友好。
+</code></pre>
+</li>
+<li>
+<p>Calibre</p>
+<pre><code>喜欢看电子书的朋友对 Calibre 一定不会感到陌生，其实这款强大的图书管理工具也有 macOS 版本，如果你之前用过它，你还可以在 Mac 电脑上继续感受到它的强大。通过 Calibre，你可以对电子书进行导入、编辑、格式转换、传输等操作，通过丰富的第三方插件你甚至还能实现很多意想不到的效果。
+</code></pre>
+</li>
+<li>
+<p>IINA</p>
+<pre><code>作为一个购买过射手影音、Movist 等视频播放器的人，当我看到 IINA 的时候简直是两眼放光。IINA 就像一款 macOS 原生播放器一样，简洁优雅，但是在功能上也毫不逊色。不管是视频解码还是字幕渲染，IINA 都是无可挑剔的。除此之外，IINA 还有在线字幕下载、画中画、视频串流等丰富的功能，充分满足你对一款视频播放器所有的幻想。最重要的是，IINA 还是免费的。
+</code></pre>
+</li>
+</ul>
+<h2 id="mac包管理器">mac包管理器</h2>
+<p>brew cask reinstall java<br>
+cask是安装GUI图形界面的命令</p>
+<ul>
+<li>
+<p>命令行工具<br>
+http://iterm2.com/</p>
+</li>
+<li>
+<p>包管理器<br>
+http://brew.sh/</p>
+</li>
+<li>
+<p>zsh<br>
+http://ohmyz.sh/</p>
+</li>
+<li>
+<p>爱情守望者_致力于分享最精彩的Mac软件<br>
+https://www.waitsun.com/</p>
+</li>
+</ul>
+<h2 id="软件">软件</h2>
+<ul>
+<li>typora</li>
+<li>Gridea</li>
+<li>iterm2</li>
+<li>transmit</li>
+<li>webstorm</li>
+<li>chrome</li>
+<li>anotherRedisManager</li>
+<li>appCleaner</li>
+<li>Dash</li>
+<li>postMan</li>
+<li>Docker</li>
+<li>cheatSheet</li>
+<li>Pdf expert</li>
+<li>Vs code</li>
+<li>anki</li>
+<li>ezip</li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[北京通讯录]]></title>
+        <id>https://sclihuiming.github.io/post/bei-jing-tong-xun-lu/</id>
+        <link href="https://sclihuiming.github.io/post/bei-jing-tong-xun-lu/">
+        </link>
+        <updated>2019-08-07T06:15:01.000Z</updated>
+        <summary type="html"><![CDATA[<p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>在北京的生活中，你可能希望得到帮助的各个联系方式。</p>
+<!-- more --> 
+<hr>
+<h2 id="万能热线-12345">万能热线    12345</h2>
+<blockquote>
+<p>这是一个“神奇”的电话，基本上你在北京生活，遇到的大事小事都能打这个电话，除了咨询，还可以投诉问题哦</p>
+</blockquote>
+<h2 id="其他">其他</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>生活热线</strong></th>
+<th style="text-align:left"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">全方位服务热线</td>
+<td style="text-align:left">12345</td>
+</tr>
+<tr>
+<td style="text-align:center">首都教育咨询服务热线</td>
+<td style="text-align:left">96391</td>
+</tr>
+<tr>
+<td style="text-align:center">治理教育乱收费举报电话</td>
+<td style="text-align:left">66074689</td>
+</tr>
+<tr>
+<td style="text-align:center">出境咨询热线</td>
+<td style="text-align:left">84020101</td>
+</tr>
+<tr>
+<td style="text-align:center">北京医院预约挂号</td>
+<td style="text-align:left">114</td>
+</tr>
+<tr>
+<td style="text-align:center">旅游行业举报热线</td>
+<td style="text-align:left">65159181</td>
+</tr>
+<tr>
+<td style="text-align:center">维权救助热线</td>
+<td style="text-align:left">12330</td>
+</tr>
+<tr>
+<td style="text-align:center">交通服务监督电话</td>
+<td style="text-align:left">12328</td>
+</tr>
+<tr>
+<td style="text-align:center">北京城管热线</td>
+<td style="text-align:left">96310</td>
+</tr>
+<tr>
+<td style="text-align:center">购房资格问题咨询</td>
+<td style="text-align:left">55598501</td>
+</tr>
+<tr>
+<td style="text-align:center">住房保障办公室</td>
+<td style="text-align:left">55598608</td>
+</tr>
+<tr>
+<td style="text-align:center">纳税服务热线</td>
+<td style="text-align:left">12366</td>
+</tr>
+<tr>
+<td style="text-align:center">一卡通服务热线</td>
+<td style="text-align:left">88087733</td>
+</tr>
+<tr>
+<td style="text-align:center">城市管理热线</td>
+<td style="text-align:left">12319</td>
+</tr>
+<tr>
+<td style="text-align:center">人力资源和社会保障局咨询中心</td>
+<td style="text-align:left">12333</td>
+</tr>
+<tr>
+<td style="text-align:center">北京公积金</td>
+<td style="text-align:left">12329</td>
+</tr>
+<tr>
+<td style="text-align:center">法律援助热线</td>
+<td style="text-align:left">63835845、63813995</td>
+</tr>
+<tr>
+<td style="text-align:center">青少年服务电话</td>
+<td style="text-align:left">12355</td>
+</tr>
+<tr>
+<td style="text-align:center">儿童紧急救助热线</td>
+<td style="text-align:left">4000069958</td>
+</tr>
+<tr>
+<td style="text-align:center">阳光计生服务热线</td>
+<td style="text-align:left">12356</td>
+</tr>
+<tr>
+<td style="text-align:center">知识产权局电话</td>
+<td style="text-align:left">84080086</td>
+</tr>
+<tr>
+<td style="text-align:center">北京市园林绿化局热线</td>
+<td style="text-align:left">84236685</td>
+</tr>
+<tr>
+<td style="text-align:center">北京不动产登记事物中心</td>
+<td style="text-align:left">89150318</td>
+</tr>
+<tr>
+<td style="text-align:center">北京政策服务中心</td>
+<td style="text-align:left">89150001</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">北京公安局</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">北京市公安局办公室</td>
+<td>85225050</td>
+</tr>
+<tr>
+<td style="text-align:center">东城分局</td>
+<td>84081110</td>
+</tr>
+<tr>
+<td style="text-align:center">西城分局</td>
+<td>83995110</td>
+</tr>
+<tr>
+<td style="text-align:center">朝阳分局</td>
+<td>85953400</td>
+</tr>
+<tr>
+<td style="text-align:center">海淀分局</td>
+<td>82519110</td>
+</tr>
+<tr>
+<td style="text-align:center">丰台分局</td>
+<td>63811993</td>
+</tr>
+<tr>
+<td style="text-align:center">石景山分局</td>
+<td>68873814</td>
+</tr>
+<tr>
+<td style="text-align:center">门头沟分局</td>
+<td>69842494</td>
+</tr>
+<tr>
+<td style="text-align:center">怀柔分局</td>
+<td>89687619</td>
+</tr>
+<tr>
+<td style="text-align:center">昌平分局</td>
+<td>69746110</td>
+</tr>
+<tr>
+<td style="text-align:center">通州分局</td>
+<td>69527200</td>
+</tr>
+<tr>
+<td style="text-align:center">顺义分局</td>
+<td>69440212</td>
+</tr>
+<tr>
+<td style="text-align:center">大兴分局</td>
+<td>69242301</td>
+</tr>
+<tr>
+<td style="text-align:center">房山分局</td>
+<td>81389110</td>
+</tr>
+<tr>
+<td style="text-align:center">平谷分局</td>
+<td>69962608</td>
+</tr>
+<tr>
+<td style="text-align:center">延庆分局</td>
+<td>81198020</td>
+</tr>
+<tr>
+<td style="text-align:center">密云分局</td>
+<td>69045456</td>
+</tr>
+<tr>
+<td style="text-align:center">开发区分局</td>
+<td>67881416</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">高铁、航班等交通</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">铁路客服热线</td>
+<td>12306</td>
+</tr>
+<tr>
+<td style="text-align:center">火车订票热线</td>
+<td>95105105</td>
+</tr>
+<tr>
+<td style="text-align:center">国航服务热线</td>
+<td>95583</td>
+</tr>
+<tr>
+<td style="text-align:center">东航服务热线</td>
+<td>95530</td>
+</tr>
+<tr>
+<td style="text-align:center">南航服务热线</td>
+<td>400-669-5539</td>
+</tr>
+<tr>
+<td style="text-align:center">海航服务热线</td>
+<td>95339</td>
+</tr>
+<tr>
+<td style="text-align:center">交通服务热线</td>
+<td>96166</td>
+</tr>
+<tr>
+<td style="text-align:center">交通投诉热线</td>
+<td>12328</td>
+</tr>
+<tr>
+<td style="text-align:center">出租车预约</td>
+<td>96103、96109</td>
+</tr>
+<tr>
+<td style="text-align:center">长途汽车票电话售票系统</td>
+<td>4006008080</td>
+</tr>
+<tr>
+<td style="text-align:center">六里桥客运站</td>
+<td>83831716</td>
+</tr>
+<tr>
+<td style="text-align:center">莲花池客运站</td>
+<td>63322354</td>
+</tr>
+<tr>
+<td style="text-align:center">永定门客运站</td>
+<td>83108007</td>
+</tr>
+<tr>
+<td style="text-align:center">八王坟客运站</td>
+<td>87718844</td>
+</tr>
+<tr>
+<td style="text-align:center">机场客运站</td>
+<td>64558718</td>
+</tr>
+<tr>
+<td style="text-align:center">新发地客运站</td>
+<td>83728005</td>
+</tr>
+<tr>
+<td style="text-align:center">四惠客运站</td>
+<td>65574804</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th><strong>停水、停电、断气、供暖</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>供电</td>
+<td>95598</td>
+</tr>
+<tr>
+<td>自来水报修</td>
+<td>96116</td>
+</tr>
+<tr>
+<td>燃气集团报修</td>
+<td>96777</td>
+</tr>
+<tr>
+<td>有线维修</td>
+<td>96196</td>
+</tr>
+<tr>
+<td>热力公司急修</td>
+<td>96069</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>北京教委</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">东城教委</td>
+<td>89945516</td>
+</tr>
+<tr>
+<td style="text-align:center">西城教委</td>
+<td>小学 63542149、初中 66151858</td>
+</tr>
+<tr>
+<td style="text-align:center">朝阳教委</td>
+<td>85851085</td>
+</tr>
+<tr>
+<td style="text-align:center">海淀教委</td>
+<td>88487306</td>
+</tr>
+<tr>
+<td style="text-align:center">顺义教委</td>
+<td>69444324</td>
+</tr>
+<tr>
+<td style="text-align:center">房山教委</td>
+<td>89359568</td>
+</tr>
+<tr>
+<td style="text-align:center">大兴教委</td>
+<td>69243338</td>
+</tr>
+<tr>
+<td style="text-align:center">门头沟教委</td>
+<td>69842564</td>
+</tr>
+<tr>
+<td style="text-align:center">丰台教委</td>
+<td>63811971</td>
+</tr>
+<tr>
+<td style="text-align:center">怀柔教委</td>
+<td>69624340</td>
+</tr>
+<tr>
+<td style="text-align:center">石景山教委</td>
+<td>68872844</td>
+</tr>
+<tr>
+<td style="text-align:center">密云教委</td>
+<td>69041752</td>
+</tr>
+<tr>
+<td style="text-align:center">延庆教委</td>
+<td>69143122</td>
+</tr>
+<tr>
+<td style="text-align:center">通州教委</td>
+<td>69546339</td>
+</tr>
+<tr>
+<td style="text-align:center">平谷教委</td>
+<td>69962744</td>
+</tr>
+<tr>
+<td style="text-align:center">昌平教委</td>
+<td>69742570</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>投诉举报</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">消费者投诉</td>
+<td>12315</td>
+</tr>
+<tr>
+<td style="text-align:center">机构编制违规举报热线</td>
+<td>12310</td>
+</tr>
+<tr>
+<td style="text-align:center">环保局监督电话</td>
+<td>12369</td>
+</tr>
+<tr>
+<td style="text-align:center">税务局通用电话</td>
+<td>12366</td>
+</tr>
+<tr>
+<td style="text-align:center">城管投诉</td>
+<td>96310</td>
+</tr>
+<tr>
+<td style="text-align:center">电力投诉</td>
+<td>12398</td>
+</tr>
+<tr>
+<td style="text-align:center">供水服务投诉</td>
+<td>96116</td>
+</tr>
+<tr>
+<td style="text-align:center">食品药品投诉</td>
+<td>12331</td>
+</tr>
+<tr>
+<td style="text-align:center">安全生产投诉</td>
+<td>12350</td>
+</tr>
+<tr>
+<td style="text-align:center">纪检监察投诉</td>
+<td>12388</td>
+</tr>
+<tr>
+<td style="text-align:center">互联网违法和不良信息举报中心</td>
+<td>67196565</td>
+</tr>
+<tr>
+<td style="text-align:center">空气质量咨询热线</td>
+<td>66172849</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>北京交通支大队</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">东城交通支队</td>
+<td>64073415</td>
+</tr>
+<tr>
+<td style="text-align:center">西城交通支队</td>
+<td>66162545</td>
+</tr>
+<tr>
+<td style="text-align:center">朝阳交通支队</td>
+<td>67715885</td>
+</tr>
+<tr>
+<td style="text-align:center">海淀交通支队</td>
+<td>62557480</td>
+</tr>
+<tr>
+<td style="text-align:center">丰台交通支队</td>
+<td>68399701</td>
+</tr>
+<tr>
+<td style="text-align:center">石景山交通支队</td>
+<td>68873720</td>
+</tr>
+<tr>
+<td style="text-align:center">门头沟交通支队</td>
+<td>69866800</td>
+</tr>
+<tr>
+<td style="text-align:center">房山区交通支队</td>
+<td>89357122</td>
+</tr>
+<tr>
+<td style="text-align:center">通州区交通支队</td>
+<td>60526167</td>
+</tr>
+<tr>
+<td style="text-align:center">顺义区交通支队</td>
+<td>69426010</td>
+</tr>
+<tr>
+<td style="text-align:center">大兴区交通支队</td>
+<td>69242047</td>
+</tr>
+<tr>
+<td style="text-align:center">平谷区交通支队</td>
+<td>69959986</td>
+</tr>
+<tr>
+<td style="text-align:center">怀柔区交通支队</td>
+<td>89684828</td>
+</tr>
+<tr>
+<td style="text-align:center">密云区交通支队</td>
+<td>69041895</td>
+</tr>
+<tr>
+<td style="text-align:center">延庆区交通支队</td>
+<td>81191977</td>
+</tr>
+<tr>
+<td style="text-align:center">昌平区交通支队</td>
+<td>69742193</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>紧急求助</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">报警电话</td>
+<td>110</td>
+</tr>
+<tr>
+<td style="text-align:center">医疗急救</td>
+<td>120</td>
+</tr>
+<tr>
+<td style="text-align:center">火警</td>
+<td>119</td>
+</tr>
+<tr>
+<td style="text-align:center">森林火警</td>
+<td>12119</td>
+</tr>
+<tr>
+<td style="text-align:center">交通事故</td>
+<td>122</td>
+</tr>
+<tr>
+<td style="text-align:center">红十字急救</td>
+<td>999</td>
+</tr>
+<tr>
+<td style="text-align:center">水上求救</td>
+<td>12395</td>
+</tr>
+<tr>
+<td style="text-align:center">法律援助</td>
+<td>12348</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>社保、公积金</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">人力资源社会保障电话</td>
+<td>12333</td>
+</tr>
+<tr>
+<td style="text-align:center">社保卡服务热线</td>
+<td>96102</td>
+</tr>
+<tr>
+<td style="text-align:center">住房公积金</td>
+<td>12329</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>图书馆</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">国家图书馆</td>
+<td>4006006988</td>
+</tr>
+<tr>
+<td style="text-align:center">首都图书馆</td>
+<td>67358114</td>
+</tr>
+<tr>
+<td style="text-align:center">东城区图书馆</td>
+<td>64051155</td>
+</tr>
+<tr>
+<td style="text-align:center">西城区图书馆</td>
+<td>66561158</td>
+</tr>
+<tr>
+<td style="text-align:center">朝阳区图书馆（劲松馆）</td>
+<td>87716300</td>
+</tr>
+<tr>
+<td style="text-align:center">朝阳区图书馆（小庄馆）</td>
+<td>85995609</td>
+</tr>
+<tr>
+<td style="text-align:center">海淀区图书馆</td>
+<td>82605290</td>
+</tr>
+<tr>
+<td style="text-align:center">丰台区图书馆</td>
+<td>63813793</td>
+</tr>
+<tr>
+<td style="text-align:center">石景山区图书馆</td>
+<td>68878259</td>
+</tr>
+<tr>
+<td style="text-align:center">昌平区图书馆</td>
+<td>69742610</td>
+</tr>
+<tr>
+<td style="text-align:center">延庆区图书馆</td>
+<td>69142547</td>
+</tr>
+<tr>
+<td style="text-align:center">怀柔区图书馆</td>
+<td>89688200</td>
+</tr>
+<tr>
+<td style="text-align:center">顺义区图书馆</td>
+<td>69447265</td>
+</tr>
+<tr>
+<td style="text-align:center">密云区图书馆</td>
+<td>69043403</td>
+</tr>
+<tr>
+<td style="text-align:center">通州区图书馆</td>
+<td>56946717</td>
+</tr>
+<tr>
+<td style="text-align:center">大兴区图书馆</td>
+<td>69290350</td>
+</tr>
+<tr>
+<td style="text-align:center">房山区图书馆</td>
+<td>69313103</td>
+</tr>
+<tr>
+<td style="text-align:center">平谷区图书馆</td>
+<td>89999517</td>
+</tr>
+<tr>
+<td style="text-align:center">门头沟区图书馆</td>
+<td>69843316</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>博物馆、展览馆</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">中国国家博物馆</td>
+<td>65116400</td>
+</tr>
+<tr>
+<td style="text-align:center">首都博物馆</td>
+<td>63370492</td>
+</tr>
+<tr>
+<td style="text-align:center">北京自然博物馆</td>
+<td>67027702</td>
+</tr>
+<tr>
+<td style="text-align:center">中国人民革命军事博物馆</td>
+<td>66866243</td>
+</tr>
+<tr>
+<td style="text-align:center">中国人民抗日战争纪念馆</td>
+<td>83893163</td>
+</tr>
+<tr>
+<td style="text-align:center">中国美术馆</td>
+<td>64012252</td>
+</tr>
+<tr>
+<td style="text-align:center">国家典籍博物馆</td>
+<td>88544747</td>
+</tr>
+<tr>
+<td style="text-align:center">民航博物馆</td>
+<td>84323666</td>
+</tr>
+<tr>
+<td style="text-align:center">中国消防博物馆</td>
+<td>66267926</td>
+</tr>
+<tr>
+<td style="text-align:center">中国海关博物馆‍</td>
+<td>65194318</td>
+</tr>
+<tr>
+<td style="text-align:center">中国华侨历史博物馆</td>
+<td>64093039</td>
+</tr>
+<tr>
+<td style="text-align:center">中国法院博物馆</td>
+<td>67557825</td>
+</tr>
+<tr>
+<td style="text-align:center">中国传媒博物馆</td>
+<td>65783696</td>
+</tr>
+<tr>
+<td style="text-align:center">中国妇女儿童博物馆</td>
+<td>65269678</td>
+</tr>
+<tr>
+<td style="text-align:center">中国邮政邮票博物馆</td>
+<td>65213894</td>
+</tr>
+<tr>
+<td style="text-align:center">北京古代建筑博物馆(先农坛)</td>
+<td>63172150</td>
+</tr>
+<tr>
+<td style="text-align:center">中国藏学研究中心</td>
+<td>64935128</td>
+</tr>
+<tr>
+<td style="text-align:center">上宅文化陈列馆</td>
+<td>69991268</td>
+</tr>
+<tr>
+<td style="text-align:center">北京市古代钱币展览馆（德胜门箭楼）</td>
+<td>62018073</td>
+</tr>
+<tr>
+<td style="text-align:center">大钟寺古钟博物馆</td>
+<td>82139050</td>
+</tr>
+<tr>
+<td style="text-align:center">北京石刻艺术博物馆(五塔寺)</td>
+<td>62173543</td>
+</tr>
+<tr>
+<td style="text-align:center">北京晋商博物馆</td>
+<td>65589968</td>
+</tr>
+<tr>
+<td style="text-align:center">北京税务博物馆</td>
+<td>84299713</td>
+</tr>
+<tr>
+<td style="text-align:center">北京警察博物馆</td>
+<td>85225018</td>
+</tr>
+<tr>
+<td style="text-align:center">北京市团城演武厅管理处</td>
+<td>62591609</td>
+</tr>
+<tr>
+<td style="text-align:center">铁道兵纪念馆</td>
+<td>52688418</td>
+</tr>
+<tr>
+<td style="text-align:center">北京和苑博物馆</td>
+<td>64686777</td>
+</tr>
+<tr>
+<td style="text-align:center">曹雪芹纪念馆</td>
+<td>62591561</td>
+</tr>
+<tr>
+<td style="text-align:center">北京新文化运动纪念馆</td>
+<td>66128596</td>
+</tr>
+<tr>
+<td style="text-align:center">北京人民艺术剧院戏剧博物馆</td>
+<td>65246789-6001</td>
+</tr>
+<tr>
+<td style="text-align:center">北京服装学院民族服饰博物馆</td>
+<td>64288261</td>
+</tr>
+<tr>
+<td style="text-align:center">北京中医药大学中医药博物馆</td>
+<td>64286835</td>
+</tr>
+<tr>
+<td style="text-align:center">北京民俗博物馆</td>
+<td>65510151</td>
+</tr>
+<tr>
+<td style="text-align:center">国家动物博物馆</td>
+<td>64807975</td>
+</tr>
+<tr>
+<td style="text-align:center">北京天文馆</td>
+<td>68312517</td>
+</tr>
+<tr>
+<td style="text-align:center">周口店北京人遗址博物馆</td>
+<td>53230037</td>
+</tr>
+<tr>
+<td style="text-align:center">中国地质博物馆</td>
+<td>66557858</td>
+</tr>
+<tr>
+<td style="text-align:center">中国航空博物馆</td>
+<td>61784882</td>
+</tr>
+<tr>
+<td style="text-align:center">北京自来水博物馆</td>
+<td>64650787</td>
+</tr>
+<tr>
+<td style="text-align:center">北京汽车博物馆</td>
+<td>63756666</td>
+</tr>
+<tr>
+<td style="text-align:center">中国铁道博物馆正阳门馆</td>
+<td>67051638</td>
+</tr>
+<tr>
+<td style="text-align:center">中国铁道博物馆东郊馆</td>
+<td>64381317</td>
+</tr>
+<tr>
+<td style="text-align:center">中国人民解放军坦克博物馆</td>
+<td>66759900</td>
+</tr>
+<tr>
+<td style="text-align:center">北京老爷车博物馆</td>
+<td>61677039</td>
+</tr>
+<tr>
+<td style="text-align:center">中国紫檀博物馆</td>
+<td>85752818</td>
+</tr>
+<tr>
+<td style="text-align:center">北京中华民族博物院</td>
+<td>62063646</td>
+</tr>
+<tr>
+<td style="text-align:center">（中华民族园）</td>
+<td>62063647</td>
+</tr>
+<tr>
+<td style="text-align:center">观复博物馆</td>
+<td>64362308</td>
+</tr>
+<tr>
+<td style="text-align:center">古陶文明博物馆</td>
+<td>63538811</td>
+</tr>
+<tr>
+<td style="text-align:center">史家胡同博物馆</td>
+<td>85175790</td>
+</tr>
+<tr>
+<td style="text-align:center">时间博物馆</td>
+<td>64087610</td>
+</tr>
+<tr>
+<td style="text-align:center">北京宣南文化博物馆</td>
+<td>83167249</td>
+</tr>
+<tr>
+<td style="text-align:center">中国农业博物馆</td>
+<td>65096067</td>
+</tr>
+<tr>
+<td style="text-align:center">中国园林博物馆</td>
+<td>63915025</td>
+</tr>
+<tr>
+<td style="text-align:center">中国长城博物馆</td>
+<td>69121890</td>
+</tr>
+<tr>
+<td style="text-align:center">中国印刷博物馆</td>
+<td>60261243</td>
+</tr>
+<tr>
+<td style="text-align:center">北京文博交流馆</td>
+<td>65253670</td>
+</tr>
+<tr>
+<td style="text-align:center">田义墓</td>
+<td>88724148</td>
+</tr>
+<tr>
+<td style="text-align:center">北京艺术博物馆</td>
+<td>68456997</td>
+</tr>
+<tr>
+<td style="text-align:center">北京市钟鼓楼文物保管所</td>
+<td>84027869</td>
+</tr>
+<tr>
+<td style="text-align:center">历代帝王庙</td>
+<td>66120186</td>
+</tr>
+<tr>
+<td style="text-align:center">中国佛教图书文物馆(法源寺)</td>
+<td>63534171</td>
+</tr>
+<tr>
+<td style="text-align:center">北京市文天祥祠文物保管所</td>
+<td>64014968</td>
+</tr>
+<tr>
+<td style="text-align:center">北京古观象台</td>
+<td>65269468</td>
+</tr>
+<tr>
+<td style="text-align:center">北京植物园热带植物展览温室馆</td>
+<td>82598771</td>
+</tr>
+<tr>
+<td style="text-align:center">中国古动物馆</td>
+<td>88369280</td>
+</tr>
+<tr>
+<td style="text-align:center">中国第四纪冰川遗迹陈列馆</td>
+<td>88722585</td>
+</tr>
+<tr>
+<td style="text-align:center">北京百年世界老电话博物馆</td>
+<td>61497478</td>
+</tr>
+<tr>
+<td style="text-align:center">詹天佑纪念馆</td>
+<td>69121506</td>
+</tr>
+<tr>
+<td style="text-align:center">北京王府井古人类文化遗址博物馆</td>
+<td>85186306</td>
+</tr>
+<tr>
+<td style="text-align:center">北京红楼文化艺术博物馆</td>
+<td>63544993</td>
+</tr>
+<tr>
+<td style="text-align:center">（北京大观园）</td>
+<td>63544994</td>
+</tr>
+<tr>
+<td style="text-align:center">保利艺术博物馆</td>
+<td>65008117</td>
+</tr>
+<tr>
+<td style="text-align:center">中央民族大学民族博物馆</td>
+<td>68932390</td>
+</tr>
+<tr>
+<td style="text-align:center">何扬吴茜现代绘画馆</td>
+<td>84338157</td>
+</tr>
+<tr>
+<td style="text-align:center">中华世纪坛艺术馆</td>
+<td>84187900</td>
+</tr>
+<tr>
+<td style="text-align:center">李大钊故居</td>
+<td>66011512（个人）</td>
+</tr>
+<tr>
+<td style="text-align:center">郭沫若纪念馆</td>
+<td>83225985</td>
+</tr>
+<tr>
+<td style="text-align:center">北京八达岭野生动物世界</td>
+<td>69122591</td>
+</tr>
+<tr>
+<td style="text-align:center">太平洋海底世界博览馆</td>
+<td>68714695</td>
+</tr>
+<tr>
+<td style="text-align:center">北京南宫世界地热博览园</td>
+<td>83318649</td>
+</tr>
+<tr>
+<td style="text-align:center">中国蜜蜂博物馆</td>
+<td>62595735</td>
+</tr>
+<tr>
+<td style="text-align:center">北京市西周燕都遗址博物馆</td>
+<td>61393049</td>
+</tr>
+<tr>
+<td style="text-align:center">北京郭守敬纪念馆</td>
+<td>83224626</td>
+</tr>
+<tr>
+<td style="text-align:center">北京鲁迅博物馆</td>
+<td>50872677</td>
+</tr>
+<tr>
+<td style="text-align:center">老舍纪念馆</td>
+<td>65142612</td>
+</tr>
+<tr>
+<td style="text-align:center">盛锡福博物馆</td>
+<td>64076488</td>
+</tr>
+<tr>
+<td style="text-align:center">中华民族艺术珍品馆</td>
+<td>67022961</td>
+</tr>
+<tr>
+<td style="text-align:center">北京御仙都皇家菜博物馆</td>
+<td>88491680</td>
+</tr>
+<tr>
+<td style="text-align:center">北京画院美术馆</td>
+<td>65025171</td>
+</tr>
+<tr>
+<td style="text-align:center">永定河文化博物馆</td>
+<td>69852446</td>
+</tr>
+<tr>
+<td style="text-align:center">老甲艺术馆</td>
+<td>81702370</td>
+</tr>
+<tr>
+<td style="text-align:center">北京韩美林艺术馆</td>
+<td>59751888</td>
+</tr>
+<tr>
+<td style="text-align:center">北京焦庄户地道战遗址纪念馆</td>
+<td>60461906</td>
+</tr>
+<tr>
+<td style="text-align:center">平西抗日战争纪念馆</td>
+<td>61340702</td>
+</tr>
+<tr>
+<td style="text-align:center">平北抗日战争纪念馆</td>
+<td>69191619</td>
+</tr>
+<tr>
+<td style="text-align:center">海淀博物馆</td>
+<td>82886800</td>
+</tr>
+<tr>
+<td style="text-align:center">昌平博物馆</td>
+<td>69741095</td>
+</tr>
+<tr>
+<td style="text-align:center">密云博物馆</td>
+<td>69088441</td>
+</tr>
+<tr>
+<td style="text-align:center">延庆博物馆</td>
+<td>69143788-8008</td>
+</tr>
+<tr>
+<td style="text-align:center">延庆地质博物馆</td>
+<td>81193303</td>
+</tr>
+<tr>
+<td style="text-align:center">北京文博交流馆（智化寺）</td>
+<td>65253670</td>
+</tr>
+<tr>
+<td style="text-align:center">中国马文化博物馆</td>
+<td>81182368</td>
+</tr>
+<tr>
+<td style="text-align:center">北京大戚收音机电影机博物馆</td>
+<td>89560128-802</td>
+</tr>
+<tr>
+<td style="text-align:center">七彩蝶</td>
+<td>89422110</td>
+</tr>
+<tr>
+<td style="text-align:center">清华大学艺术博物馆</td>
+<td>62781012</td>
+</tr>
+<tr>
+<td style="text-align:center">新西兰富国海底世界</td>
+<td>65913397</td>
+</tr>
+<tr>
+<td style="text-align:center">太平洋（汉海）海底世界</td>
+<td>68461197</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>新闻热线</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">新京报</td>
+<td>67106710</td>
+</tr>
+<tr>
+<td style="text-align:center">北京日报</td>
+<td>65591515</td>
+</tr>
+<tr>
+<td style="text-align:center">北京晚报</td>
+<td>85202188</td>
+</tr>
+<tr>
+<td style="text-align:center">华夏时报</td>
+<td>59250005</td>
+</tr>
+<tr>
+<td style="text-align:center">北京青年报</td>
+<td>65902020</td>
+</tr>
+<tr>
+<td style="text-align:center">中国经营报</td>
+<td>88890087</td>
+</tr>
+<tr>
+<td style="text-align:center">中国青年报</td>
+<td>64098000</td>
+</tr>
+<tr>
+<td style="text-align:center">新华社(北京)</td>
+<td>63073111、63073222</td>
+</tr>
+<tr>
+<td style="text-align:center">北京人民广播电台</td>
+<td>65661566</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>各快递、网购电话</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">申通</td>
+<td>95543</td>
+</tr>
+<tr>
+<td style="text-align:center">圆通</td>
+<td>95554</td>
+</tr>
+<tr>
+<td style="text-align:center">顺丰</td>
+<td>95338</td>
+</tr>
+<tr>
+<td style="text-align:center">韵达</td>
+<td>95546</td>
+</tr>
+<tr>
+<td style="text-align:center">EMS</td>
+<td>11183</td>
+</tr>
+<tr>
+<td style="text-align:center">邮政包裹</td>
+<td>11183</td>
+</tr>
+<tr>
+<td style="text-align:center">德邦</td>
+<td>95353</td>
+</tr>
+<tr>
+<td style="text-align:center">中通</td>
+<td>95311</td>
+</tr>
+<tr>
+<td style="text-align:center">天天</td>
+<td>4001888888</td>
+</tr>
+<tr>
+<td style="text-align:center">达达</td>
+<td>4009919512</td>
+</tr>
+<tr>
+<td style="text-align:center">百世汇通</td>
+<td>95320</td>
+</tr>
+<tr>
+<td style="text-align:center">宅急送</td>
+<td>4006789000</td>
+</tr>
+<tr>
+<td style="text-align:center">优速快递</td>
+<td>95349</td>
+</tr>
+<tr>
+<td style="text-align:center">如风达</td>
+<td>4000106660</td>
+</tr>
+<tr>
+<td style="text-align:center">中铁快运</td>
+<td>95572</td>
+</tr>
+<tr>
+<td style="text-align:center">跨越速运</td>
+<td>95324</td>
+</tr>
+<tr>
+<td style="text-align:center">淘宝网</td>
+<td>9510211</td>
+</tr>
+<tr>
+<td style="text-align:center">京东商城</td>
+<td>4006065500</td>
+</tr>
+<tr>
+<td style="text-align:center">当当网</td>
+<td>4001066666</td>
+</tr>
+<tr>
+<td style="text-align:center">亚马逊</td>
+<td>国际：86-28-65332666</td>
+</tr>
+<tr>
+<td style="text-align:center">国内：4008105666</td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">美团</td>
+<td>10109777</td>
+</tr>
+<tr>
+<td style="text-align:center">糯米网</td>
+<td>4009216666</td>
+</tr>
+<tr>
+<td style="text-align:center">唯品会</td>
+<td>4006789888</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><strong>银行、信用卡、保险</strong></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">北京银行</td>
+<td>95526</td>
+</tr>
+<tr>
+<td style="text-align:center">中国银行</td>
+<td>95566</td>
+</tr>
+<tr>
+<td style="text-align:center">工商银行</td>
+<td>95588</td>
+</tr>
+<tr>
+<td style="text-align:center">农业银行</td>
+<td>95599</td>
+</tr>
+<tr>
+<td style="text-align:center">建设银行</td>
+<td>95533</td>
+</tr>
+<tr>
+<td style="text-align:center">交通银行</td>
+<td>95559</td>
+</tr>
+<tr>
+<td style="text-align:center">招商银行</td>
+<td>95555</td>
+</tr>
+<tr>
+<td style="text-align:center">邮政储蓄银行</td>
+<td>95580</td>
+</tr>
+<tr>
+<td style="text-align:center">光大银行</td>
+<td>95595</td>
+</tr>
+<tr>
+<td style="text-align:center">平安银行</td>
+<td>95511</td>
+</tr>
+<tr>
+<td style="text-align:center">广发银行</td>
+<td>4008308003</td>
+</tr>
+<tr>
+<td style="text-align:center">中信银行</td>
+<td>95558</td>
+</tr>
+<tr>
+<td style="text-align:center">浦发银行</td>
+<td>95528</td>
+</tr>
+<tr>
+<td style="text-align:center">民生银行</td>
+<td>95568</td>
+</tr>
+<tr>
+<td style="text-align:center">华夏银行</td>
+<td>95577</td>
+</tr>
+<tr>
+<td style="text-align:center">平安保险</td>
+<td>95511</td>
+</tr>
+<tr>
+<td style="text-align:center">人民保险</td>
+<td>95518</td>
+</tr>
+<tr>
+<td style="text-align:center">人寿保险</td>
+<td>95519</td>
+</tr>
+<tr>
+<td style="text-align:center">太平洋保险</td>
+<td>95500</td>
+</tr>
+<tr>
+<td style="text-align:center">新华人寿保险</td>
+<td>95567</td>
+</tr>
+<tr>
+<td style="text-align:center">支付宝</td>
+<td>95188</td>
+</tr>
+<tr>
+<td style="text-align:center">财付通</td>
+<td>0755-86013860</td>
+</tr>
+<tr>
+<td style="text-align:center">微信支付、理财通</td>
+<td>95017</td>
+</tr>
+</tbody>
+</table>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[csv大文件读取并且写入数据库]]></title>
+        <id>https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku/</id>
+        <link href="https://sclihuiming.github.io/post/csv-da-wen-jian-du-qu-bing-qie-xie-ru-shu-ju-ku/">
+        </link>
+        <updated>2019-05-21T02:34:17.000Z</updated>
+        <summary type="html"><![CDATA[<p>最近有一个需求，就是三方发来一个csv大文件（超过1个G）需要写入mongodb数据，提供接口支持自己的服务。由于文件太大，不能一次读入内存中，那么需要使用stream来进行处理，这里提供了几种方法来解决这次问题。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>最近有一个需求，就是三方发来一个csv大文件（超过1个G）需要写入mongodb数据，提供接口支持自己的服务。由于文件太大，不能一次读入内存中，那么需要使用stream来进行处理，这里提供了几种方法来解决这次问题。</p>
+<!-- more --> 
+<hr>
+<p>csv文件可以理解为一种有特定分隔符的文本文件。这样我们就可以按照文本文件对此进行处理，而不需要第三方xlsx的库了。</p>
+<h2 id="方案1-简单粗暴">方案1 简单粗暴</h2>
+<p>由于mongodb是支持csv方式导入文件的，可以稍作处理，直接导入数据库。（导入前建议将相关索引都建立好）</p>
+<h2 id="方案2-使用readline逐行读取数据">方案2 使用readline逐行读取数据</h2>
+<p>readline作为node.js核心库，可以直接引入使用，文档地址：<a href="https://nodejs.org/dist/latest-v10.x/docs/api/readline.html">https://nodejs.org/dist/latest-v10.x/docs/api/readline.html</a></p>
+<ol>
+<li>首先创建一个<code>readline.Interface</code>实例</li>
+</ol>
+<pre><code class="language-javascript">const readline = require('readline');
+const fs = require('fs');
+const rl = readline.createInterface({
+  input: fs.createReadStream('xxxx.csv')//要监听的可读流
+});
+</code></pre>
+<ol start="2">
+<li>监听<code>line</code>事件</li>
+</ol>
+<pre><code class="language-javascript">let index = 0;//计数
+let header = [];// 用于存放csv的表头
+rl.on('line', async (line) =&gt; {
+  rl.pause();//暂停流
+  if (index === 0) {//第一行为表头
+    header = _.split(line, ',');
+    index++;
+    // rl.prompt();
+  } else {//数据行
+    index++;
+    let tmpData = _.split(line, ',');
+    let tmpObj = _.zipObject(header, tmpData);//lodash的方法，将2个数组映射成对象
+    let imei = tmpObj['muid'];
+    if (imei) {
+      //数据库写入操作
+    } else {
+      // rl.prompt();当调用时，如果 input 流已暂停，则 rl.prompt() 将恢复它。
+    }
+  }
+});
+</code></pre>
+<p><em>上面的方法使用lodash的zipObject，文档如下：<a href="https://lodash.com/docs/4.17.11#zipObject">zipObject</a></em></p>
+<ol start="3">
+<li>
+<p>刷新流，这里需要刷新流是因为上面的流被暂停了，但是这个流被暂停不是实时的。</p>
+<blockquote>
+<p><code>rl.pause()</code> 方法会暂停 <code>input</code> 流，允许稍后在必要时恢复它。调用 <code>rl.pause()</code> 不会立刻暂停 <code>readline.Interface</code> 实例触发的其他事件</p>
+</blockquote>
+<p>所以我们不能再<code>line</code>事件中来刷新流(如果那样做的话也会将内存撑爆的，具体原因就是因为这个流暂停的不是立刻暂停的，我这里测试的是每次暂停的事件生效的时候，index已经跑到了1986了)，所以这里采用一个<code>setInterval</code>来刷新流，每一次刷新前都有接近2000条的数据等待着处理，我这里数据库处理2000条数据大约需要500毫秒，所以这个间隔时间我设置的500</p>
+<pre><code class="language-javascript">setInterval(function () {
+  rl.prompt();
+}, 500)
+
+rl.on('close', function () {
+  console.log('close');
+  // resolve(1);
+});
+</code></pre>
+</li>
+</ol>
+<p><strong>这个方法并不能很好控制住数据的处理，所以也不能在线上环境使用，只有在本地作为临时处理的方案</strong></p>
+<h2 id="方案3-使用readstream">方案3 使用readStream</h2>
+<p>使用stream的事件来处理文件，而且分隔符不仅仅限于换行分隔符(\r，\n，\r\n)。</p>
+<ol>
+<li>创建流，监听事件</li>
+</ol>
+<pre><code class="language-javascript">  let readable = fs.createReadStream(filePath);
+  readable.on('open', function (fd) {
+    console.log('file was opened, fd - ', fd);
+  });
+  readable.on('data', async function (chunk) {
+    // console.log('read %d bytes: %s', chunk.length, chunk);
+    await dealData(readable, chunk);
+  });
+  readable.on('end', function () {
+    console.log('read end');
+  });
+  readable.on('close', function () {
+    console.log('file was closed.');
+  });
+  readable.on('error', function (err) {
+    console.log('error occured: %s', err.message);
+  });
+</code></pre>
+<ol start="2">
+<li>dealData处理数据</li>
+</ol>
+<pre><code class="language-javascript">async function dealData(readable, data) {
+		readable.pause();//暂停读取
+		dataBuffer = Buffer.concat([dataBuffer, data]);
+		let seperate = &quot;\n&quot;;//分隔符，可以根据条件填写
+		let index = dataBuffer.indexOf(seperate);
+		// console.log(index)
+		let lineBuffer;//行数据缓存
+		let len;
+		while (index &gt; -1) {
+			len = index + seperate.length;
+			lineBuffer = dataBuffer.slice(0, len);//目标数据
+			num++;
+			//await 数据库操作lineBuffer
+			//处理每一行数据
+			dataBuffer = dataBuffer.slice(len, dataBuffer.length);
+			index = dataBuffer.indexOf(seperate);
+		}
+		readable.resume();//恢复读取文件
+}
+</code></pre>
+<p><strong>目前方案3的程序运营良好，没有出现什么内存泄露的问题，能够解决目前所遇到的问题</strong></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[学习备忘录]]></title>
+        <id>https://sclihuiming.github.io/post/xue-xi-bei-wang-lu/</id>
+        <link href="https://sclihuiming.github.io/post/xue-xi-bei-wang-lu/">
+        </link>
+        <updated>2019-03-25T03:59:52.000Z</updated>
+        <content type="html"><![CDATA[<ul class="contains-task-list">
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5049148"><label class="task-list-item-label" for="task-item-5049148"> leaflet</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-8281796"><label class="task-list-item-label" for="task-item-8281796"> docker</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3508977"><label class="task-list-item-label" for="task-item-3508977"> redis</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-9983251"><label class="task-list-item-label" for="task-item-9983251"> nginx</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6727024"><label class="task-list-item-label" for="task-item-6727024"> git</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-7369005"><label class="task-list-item-label" for="task-item-7369005"> shell</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1212171"><label class="task-list-item-label" for="task-item-1212171"> 算法基础</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-7860733"><label class="task-list-item-label" for="task-item-7860733"> puppteer</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-2474390"><label class="task-list-item-label" for="task-item-2474390"> fastify</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-609238"><label class="task-list-item-label" for="task-item-609238"> 更多</label></li>
+</ul>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[2019年Node.js开发学习路线]]></title>
+        <id>https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian/</id>
+        <link href="https://sclihuiming.github.io/post/2019-nian-nodejs-kai-fa-xue-xi-lu-xian/">
+        </link>
+        <updated>2019-03-13T02:43:55.000Z</updated>
+        <content type="html"><![CDATA[<hr>
+<figure data-type="image" tabindex="1"><img src="https://sclihuiming.github.io/post-images/1552445306692.png" alt="" loading="lazy"></figure>
+<p>以上图片来自github <a href="https://github.com/aliyr/Nodejs-Developer-Roadmap">Nodejs-Developer-Roadmap</a></p>
+]]></content>
+    </entry>
+</feed>

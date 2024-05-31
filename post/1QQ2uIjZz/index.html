@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>「排障系列」Node gRPC 静态生成文件引发的问题 | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1717120064416">
+<link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140235358-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1717120064416" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">「排障系列」Node gRPC 静态生成文件引发的问题</h2>
+            <div class="post-date">2022-09-23</div>
+            
+            <div class="post-content">
+              <h2 id="背景">背景</h2>
+<p>目前正在修改的<code>xiaoju-bot</code>项目，使用<code>uni-q-payload</code>项目中的proto生成的js代码，当前正在做的内容是，监听<code>wechaty</code>的dong事件，根据返回的朋友圈事件，使用<code>uni-q-payload</code>封装好的代码序列化后放进队列，供<code>automation</code>项目使用。</p>
+<!-- more -->
+<p>之前<code>xiaoju-bot</code>使用这个<code>uni-q-payload</code>都是正常使用的，不会报任何错。但是这次接入了dong事件后，<code>xiaoju-bot</code>启动就会报错，具体错误如下：</p>
+<pre><code class="language-shell">22:17:40 INFO PuppetService stopGrpcStream()
+22:17:40 INFO PuppetService stopGrpcStream() finished
+22:17:40 ERR PuppetService start() rejection: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StartRequest')
+Error: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StartRequest')
+    at Object.callErrorFromStatus (/Users/mac/Documents/juzi/gitlab/xiaoju-bot/node_modules/@grpc/grpc-js/src/call.ts:81:24)
+    ...
+22:17:40 WARN Puppet reset() exception: Error: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StartRequest')
+22:17:40 ERR errorListener Error happened:
+Error
+    at PuppetService.&lt;anonymous&gt; (/Users/mac/Documents/juzi/gitlab/xiaoju-bot/node_modules/wechaty/src/wechaty.ts:444:32)
+    ...
+22:17:40 ERR PuppetService stop() stop GRPC rejection: 13 INTERNAL: Request message serialization failure: Cannot read properties of undefined (reading 'StopRequest')
+</code></pre>
+<p>但是如果移出本次写的逻辑，xiaoju-bot可以正常使用.</p>
+<pre><code class="language-typescript">import { BOT_CONFIG, log } from '../config';
+import { BotDongEventType, MomentType, DongEvent } from '../model';
+import { RequestPool } from '../service/request_pool_manager';
+import { MomentPublish } from '../service/mq/publishHandler/moment_publish';
+
+const PRE = 'dongListener';
+
+export const dongListener = async (data?: string) =&gt; {
+  ...
+  try {
+    const resInfo = JSON.parse(data);
+    dispatchMessage(resInfo);
+  } catch (e) {
+    log.error(PRE, `dong message dispatch error, botId: ${BOT_CONFIG.BOT_ID}, message: ${data}, error: ${e?.message}`);
+  }
+};
+
+function dispatchMessage (data) {
+  ...
+  switch (api) {
+    case DongEvent.MOMENT_EVENT:
+      void MomentPublish.dispatchEventPayload(result);
+      break;
+    default:
+      ...
+  }
+}
+</code></pre>
+<h2 id="初步定位">初步定位</h2>
+<ol>
+<li>首先通过逐渐删除本次增加内容，尤其是import导入的模块，发现，只要把<code>uni-q-payload</code>的相关引用去掉，<code>xiaoju-bot</code>能够正常运行。反之，加上就不行。（所以怀疑<code>uni-q-payload</code>打包有问题）</li>
+<li>搜索错误 <code>13 INTERNAL: Request message serialization failure: </code> 找到了这篇文章<a href="https://zhuanlan.zhihu.com/p/368216922">「排障系列」记一次 Node gRPC 静态生成文件引发的问题</a> ，该文章描述了，2个不同模块使用了同一个npm包的不同版本（该npm里面就是proto生成的js代码），导致的上述错误，主要的原因就是2个不同版本由于proto的命名冲突导致的全局变量被覆盖然后在序列化的时候出现了该问题。<br>
+所有我根据这个线索一直查找<code>uni-q-payload</code>中是否有与<code>puppt-service</code>引用的grpc（wechaty-grpc）命令冲突的地方，然而并没有找到相关线索，此处耗费大量时间。。。</li>
+</ol>
+<h2 id="深入探索">深入探索</h2>
+<h3 id="线索一puppetservice">线索一：PuppetService</h3>
+<p>这里面并没有太多有用的东西，只是顺着他找到了<code>wechaty-grpc</code>模块，这也是真正出错的地方</p>
+<h3 id="线索二cannot-read-properties-of-undefined-reading-startrequest">线索二：Cannot read properties of undefined (reading 'StartRequest')</h3>
+<p>该报错就来自于<code>wechaty-grpc</code>模块。报错入口来自于puppet-service.js的这个方法</p>
+<pre><code class="language-typescript">await this.grpcClientStart();
+
+async grpcClientStart() {
+    try {
+        const a = new wechaty_grpc_1.StartRequest();
+        await util_1.default.promisify(this.grpcClient.start
+            .bind(this.grpcClient))(new wechaty_grpc_1.StartRequest());
+    }
+    catch (error) {
+        ...
+    }
+}
+
+// base_pb.js
+proto.wechaty.puppet.StartRequest.prototype.serializeBinary = function() {
+  var writer = new jspb.BinaryWriter();
+  // 这里的打印，显示proto.wechaty.puppet已经是undefined了，所以他肯定是被覆盖了。
+  console.log('aaaaa', proto.wechaty);
+  // 这个地方就是报错的地方
+  proto.wechaty.puppet.StartRequest.serializeBinaryToWriter(this, writer);
+  return writer.getResultBuffer();
+};
+</code></pre>
+<h4 id="线索三protowechatypuppet为undefined">线索三：proto.wechaty.puppet为undefined</h4>
+<p>结合上面dong里面的关于<code>uni-q-payload</code>引用，来调试 proto.wechaty.puppet为什么会被覆盖。<br>
+<img src="https://sclihuiming.github.io/post-images/1663902456202.png" alt="" loading="lazy"></p>
+<p>可以看到，最开始的时候proto.wechaty.puppet是会被赋值的，然后断点会接着进入uni-q-payload的赋值</p>
+<figure data-type="image" tabindex="1"><img src="https://sclihuiming.github.io/post-images/1663902483299.png" alt="" loading="lazy"></figure>
+<p>可以看到，<code>uni-q-payload</code>的变量与<code>wechaty-grpc</code>的变量是没有冲突的。</p>
+<pre><code class="language-text">proto.wechaty.puppet.StartRequest
+proto.uni_q_payload.wechaty.PostTextMomentActionPayload
+</code></pre>
+<p>到这里，其实都还是没有找到为什么会覆盖，其实最后的结果就是<code>proto.wechaty.puppet.*</code>的值，就是被<code>proto.uni_q_payload.wechaty.*</code>的值覆盖的。<br>
+因为最后还会进入<code>uni-q-payload</code>的index_pb.js的引用，该文件变量定义如下：</p>
+<figure data-type="image" tabindex="2"><img src="https://sclihuiming.github.io/post-images/1663902552167.png" alt="" loading="lazy"></figure>
+<p>这个其实也没有什么问题，与proto.wechaty.puppet变量不相同。引起变量覆盖的是下面这一行代码：</p>
+<figure data-type="image" tabindex="3"><img src="https://sclihuiming.github.io/post-images/1663902573919.png" alt="" loading="lazy"></figure>
+<p>在 <code>exports</code> 上挂载 <code>proto.uni-q-payload</code> 对象作为导出。</p>
+<figure data-type="image" tabindex="4"><img src="https://sclihuiming.github.io/post-images/1663902613251.png" alt="" loading="lazy"></figure>
+<p>此时的proto.uni-q-payload的结构如上图所示。<br>
+<strong>goog.object.extend(exports, proto.uni_q_payload)会把proto.uni_q_payload的结构都挂在到proto上去，相当于了去掉了uni-q-payload。那么当执行了这个语句后，原来的proto.wechaty就被proto.uni-q-payload.wechaty覆盖了。</strong></p>
+<p>至此，问题找到。</p>
+<h2 id="解决方案">解决方案</h2>
+<ol>
+<li>
+<p>调整加载顺序，我把dong的引入放在puppet-service之前，在覆盖的时候wechaty-grpc还没有挂在全局变量，就不会覆盖。<br>
+<img src="https://sclihuiming.github.io/post-images/1663902704237.png" alt="" loading="lazy"><br>
+但是此方案，不优雅，也不实用，容易被其他同事移动位置，然后报错。所以放弃。</p>
+</li>
+<li>
+<p>更改uni-q-payload中关于wechaty的包名，尽量特殊一点，或者层次结构调整，应该需要automation那边项目一起改下包名，工作量还好，需要同事配合下。</p>
+</li>
+</ol>
+<figure data-type="image" tabindex="5"><img src="https://sclihuiming.github.io/post-images/1663902715071.png" alt="" loading="lazy"></figure>
+<p>以上方案，验证可行</p>
+<h2 id="经验">经验</h2>
+<ol>
+<li>包名尽量唯一，考虑重复的可能</li>
+<li>考虑了第一点后，还要考虑是不是会被其他方式覆盖包名</li>
+</ol>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/pxkwc8yjv/">
+                  <h3 class="post-title">
+                    mac tips
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

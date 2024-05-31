@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>k8s-tutorials | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1717120064416">
+<link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140235358-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1717120064416" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">k8s-tutorials</h2>
+            <div class="post-date">2022-11-16</div>
+            
+            <div class="post-content">
+              <h1 id="踩坑记录">踩坑记录</h1>
+<h2 id="macos">macOS</h2>
+<ul>
+<li>Docker for Mac 17.12+ 启用 k8s 之后会在 <code>/usr/local/bin</code> 放入 <code>kubectl</code>，所以你无需安装。</li>
+<li>Docker for Mac 自带 <code>k8s</code> 会与 <code>minikube</code> 冲突，可以使用以下命令切换。</li>
+</ul>
+<h2 id="centos">centos</h2>
+<p>使用国内源的时候注意要指定<code>--kubernetes-version</code>的版本，否则会报出一系列的超时错误，具体原因不知道，我服务器上切换到<code>v1.23.0</code>之后就稳定运行起来了。<br>
+<code>centos</code>中启动<code>minikube</code>的时候 <code>--vm-driver</code>默认值就是<code>docker</code></p>
+<pre><code class="language-shell">minikube start \
+ --image-mirror-country=cn \
+ --registry-mirror='https://t9ab0rkd.mirror.aliyuncs.com' \
+ --image-repository='registry.cn-hangzhou.aliyuncs.com/google_containers' \
+ --vm-driver=docker \
+ --kubernetes-version v1.23.0
+</code></pre>
+<p>以上这种方式启动的<code>--vm-driver=docker</code>实在docker里面运行这minikube的容器，这样无法直接通过宿主机直接访问minikube里面部署的服务，无法使用<code>NodePort</code>来进行测试访问。</p>
+<p>可以使用<code>--vm-driver=none</code>来进行minikube服务的启动。其中相关问题解答在这里<a href="https://www.qiniu.com/qfans/qnso-64881583">如何使用minikube主机的公共ip地址访问外部服务?</a></p>
+<h3 id="centos安装-kubelet-kubeadm-kubectl">centos安装 kubelet kubeadm kubectl</h3>
+<pre><code class="language-shell">cat &lt;&lt;EOF &gt; /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+
+setenforce 0
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+systemctl enable kubelet &amp;&amp; systemctl start kubelet
+
+## 另外，你也可以指定版本安装
+## yum install kubectl-1.21.3-0.x86_64 kubeadm-1.21.3-0.x86_64 kubelet-1.21.3-0.x86_64
+</code></pre>
+<p><em>ps: 由于官网未开放同步方式, 可能会有索引gpg检查失败的情况, 这时请用 <code>yum install -y --nogpgcheck kubelet kubeadm kubectl</code> 安装</em></p>
+<h2 id="kubectl-port-forward">kubectl port-forward</h2>
+<pre><code class="language-shell">kubectl port-forward hellok8s 3000:3000
+</code></pre>
+<p>以上命令默认监听地址为<code>localhost</code>。如果设置为localhost，那么k8s会监听127.0.0.1和::1这两个地址。我本地访问服务器的3000端口，会失败。</p>
+<pre><code class="language-shell">kubectl port-forward --address=0.0.0.0 hellok8s 3000:3000
+</code></pre>
+<p>以上命令可监听任意地址， 使用这个命令，我本地便可以访问服务器的3000端口了。详情可以使用<code>kubectl port-forward --help</code>查看.</p>
+<h2 id="nodeport">nodePort</h2>
+<p>nodePort设置后，发现<code>ip:端口</code>不能访问到服务，需要执行</p>
+<pre><code class="language-shell">iptables -P FORWARD ACCEPT
+</code></pre>
+<h1 id="命令">命令</h1>
+<h3 id="查看以及切换">查看以及切换</h3>
+<pre><code class="language-shell">kubectl config get-contexts
+</code></pre>
+<h3 id="切换到docker自带的k8s">切换到docker自带的k8s</h3>
+<pre><code class="language-shell">kubectl config use-context docker-for-desktop
+</code></pre>
+<h3 id="切换到minikube">切换到miniKube</h3>
+<pre><code class="language-shell">kubectl config use-context minikube
+</code></pre>
+<h3 id="汇总">汇总</h3>
+<pre><code class="language-shell"># 应用配置文件
+kubectl apply -f deployment.yaml
+
+# 回滚到上一次版本
+kubectl rollout undo deployment hellok8s-deployment
+
+# 查看历史版本
+kubectl rollout history deployment hellok8s-deployment
+
+# 回滚到指定版本
+kubectl rollout undo deployment/hellok8s-deployment --to-revision=2
+
+# 查看Endpoint
+kubectl get endpoints
+
+# 获取 Pod 更多的信息
+kubectl get pod -o wide
+
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/1QQ2uIjZz/">
+                  <h3 class="post-title">
+                    「排障系列」Node gRPC 静态生成文件引发的问题
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

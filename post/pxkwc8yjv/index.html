@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>mac tips | pmlov</title>
+<meta name="description" content="JUST DO IT">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://sclihuiming.github.io/favicon.ico?v=1717120064416">
+<link rel="stylesheet" href="https://sclihuiming.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-140235358-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-140235358-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://sclihuiming.github.io">
+        <img src="https://sclihuiming.github.io/images/avatar.png?v=1717120064416" class="site-logo">
+        <h1 class="site-title">pmlov</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/sclihuiming" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://www.zhihu.com/people/huiming-li/activities" target="_blank">
+            <i class="fab fa-zhihu"></i>
+          </a>
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      JUST DO IT
+    </div>
+    <div class="site-footer">
+      
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">mac tips</h2>
+            <div class="post-date">2020-07-01</div>
+            
+              <div class="feature-container" style="background-image: url('https://sclihuiming.github.io/post-images/pxkwc8yjv.jpg')">
+              </div>
+            
+            <div class="post-content">
+              <p>新的macbook拿到手，需要做的事情清单</p>
+<!-- more --> 
+<h1 id="u-disk-installer">U disk installer</h1>
+<p>sudo /Applications/Install\ macOS\ Sierra.app/Contents/Resources/createinstallmedia --volume /Volumes/Install\ macOS --applicationpath /Applications/Install\ macOS\ Sierra.app --nointeraction</p>
+<p>重启 按住option</p>
+<p>sudo （以临时root权限来运行）createinstallmedia这个文件  来执行 --applicationpath （程序解压命令） 解压这个文件 Yosemite.app  --volume到挂载点 （U盘路径） 参数--nointeraction （免去交互）</p>
+<h1 id="app-store-下载慢-v2ex-域名">app store 下载慢? v2ex 域名</h1>
+<p>改dns: 178.79.131.110</p>
+<h1 id="istat">iStat</h1>
+<p>9665-5955-6856-2071-0000</p>
+<h1 id="webstorm-config-go">webstorm config go</h1>
+<p>brew install go<br>
+vi .zshrc<br>
+export GOPATH=/Users/create/Documents/golang<br>
+export GOROOT=/usr/local/bin/go</p>
+<p>set go sdk<br>
+/usr/local/Cellar/go/1.5.2</p>
+<h1 id="active-webstorm">active webstorm</h1>
+<p>http://idea.lanyus.com</p>
+<h1 id="个人设置">个人设置:</h1>
+<h1 id="1trackpad">1.Trackpad</h1>
+<p>Point&amp;Click<br>
+Tap to click</p>
+<p>More Gestures:<br>
+select App Expose<br>
+// 选中其他需要的东西</p>
+<h1 id="2三指拖动">2.三指拖动</h1>
+<p>Accessibility<br>
+Mouse &amp; Trackpad<br>
+Trackpad Options<br>
+Enable dragging with three finger drag.</p>
+<h1 id="按钮焦点">按钮焦点</h1>
+<p>Keyboard-&gt;Shortcuts-&gt;Text boxes and lists only|All controls</p>
+<h1 id="4禁用游客">4.禁用游客</h1>
+<p>Users &amp; Groups<br>
+// take the guest user off.</p>
+<h1 id="5iterm">5.iterm</h1>
+<p>Terminal Environment<br>
+uncheck :Set locale variables automatically<br>
+//set lc 中文乱码<br>
+export LC_ALL=&quot;en_US.UTF-8&quot;<br>
+echo &quot;export LC_ALL=en_US.UTF-8&quot; &gt;&gt; .zshrc</p>
+<h1 id="6禁止ds_store-需要重启">6.禁止.DS_Store (需要重启)</h1>
+<p>defaults write com.apple.desktopservices DSDontWriteNetworkStores true</p>
+<h1 id="7allow-apps-downloaded-from-everywhere">7.allow apps downloaded from everywhere</h1>
+<p>sudo spctl --master-disable</p>
+<h1 id="linux-ssh-key">linux ssh key:</h1>
+<p>用 ssh-key-gen 在本地主机上创建公钥和密钥<br>
+ssh-keygen -t  rsa<br>
+ssh-copy-id -i ~/.ssh/id_rsa.pub  root@192.168.0.3</p>
+<h1 id="quicklook-plugins">quicklook plugins:</h1>
+<p>https://github.com/sindresorhus/quick-look-plugins</p>
+<p>brew cask install qlcolorcode qlstephen qlmarkdown quicklook-json qlprettypatch quicklook-csv betterzipql qlimagesize webpquicklook suspicious-package provisionql</p>
+<p>qlmanage -r/-l</p>
+<h1 id="j">j</h1>
+<p>brew install automump<br>
+vim .zshrc<br>
+[[ -s <code>brew --prefix</code>/etc/autojump.sh ]] &amp;&amp; . <code>brew --prefix</code>/etc/autojump.sh</p>
+<h1 id="pgk-安装包">pgk 安装包</h1>
+<p>显示所有 pgk 安装包<br>
+pkgutil --pkgs<br>
+显示安装的文件<br>
+pkgutil --files xxx.xx.xx</p>
+<h1 id="alfred-custome-terminal">alfred custome terminal</h1>
+<p>https://github.com/stuartcryan/custom-iterm-applescripts-for-alfred</p>
+<h1 id="brew">brew</h1>
+<p>brew install git go redis mongodb htop vim wget curl</p>
+<h1 id="pages">pages</h1>
+<p>{<br>
+​    &quot;username&quot;: &quot;hello&quot;,<br>
+​    &quot;password&quot;: &quot;v9$Ipoa0@9OPfio@9&quot;<br>
+}</p>
+<h1 id="xcode-安装后执行">xcode 安装后执行</h1>
+<p>xcode-select --install</p>
+<h1 id="安装-java">安装 java</h1>
+<p>brew cask install java</p>
+<blockquote>
+<p>jdk目录在/Library/Java/JavaVirtualMachines/</p>
+</blockquote>
+<h1 id="vscode">vscode</h1>
+<h2 id="user-config">user config</h2>
+<p><code>{ ​    &quot;editor.fontSize&quot;: 15, ​    &quot;editor.fontFamily&quot;: &quot;Monaco, Menlo, 'Courier New', monospace&quot;, ​    &quot;workbench.colorTheme&quot;: &quot;Solarized Light&quot;, ​    &quot;workbench.iconTheme&quot;: &quot;vscode-great-icons&quot;, ​    &quot;editor.minimap.enabled&quot;: true, ​    &quot;editor.dragAndDrop&quot;: true }</code></p>
+<blockquote>
+<p>卸载 Instant Markdown<br>
+给Beautify设置快捷键, Preferences-&gt;Keyboard Shortcuts</p>
+</blockquote>
+<h2 id="install">install</h2>
+<blockquote>
+<p>Highlight Trailing White Spaces</p>
+</blockquote>
+<h2 id="应用合集">应用合集</h2>
+<ul>
+<li>
+<p>Cheat Sheet</p>
+<pre><code>你肯定想通过使用快捷键来简化操作。那么，这么多应用的快捷键怎么能都记住呢？其实，你根本不要去死记硬背，Cheat Sheet 可以帮助你一键查看当前应用所有的快捷键。只需要「长按 Command」，一个记录了所有快捷键的悬浮窗口就会出现，每次想用时打开看一眼就知道了，多用几次自然而言就记住了。
+</code></pre>
+</li>
+<li>
+<p>GIF Brewery 3</p>
+<pre><code>GIF 作为一种常见的格式，在我们的生活中扮演着一个重要的角色。有些人拿 GIF 图片来做文章中的演示，有些人则用 GIF 图片来制作搞笑表情包。其实，在 Mac 电脑上你也可以轻松简单地制作 GIF 图片，只需一个 GIF Brewery 3 就足够了。如果你的需求很简单，GIF Brewery 3 可以直接将导入的视频或者录屏转制为 GIF 图片；如果你有进阶的需求，那么 GIF Brewery 3 可以设定完整的参数，还可以添加字幕，满足你对 GIF 制作所有的要求。
+</code></pre>
+</li>
+<li>
+<p>Typora</p>
+<pre><code>想用 Markdown 写作却不想一开始就购买昂贵的 Markdown 编辑器的你，不妨试一试免费又好用的 Typora。虽然免费，但是 Typora 的功能丝毫不含糊，表格插入、代码和数学公式输入、目录大纲支持等高级功能一个都不少。不过，Typora 又有别于一般的 Markdown 编辑器，因为它采用了 WYSIWYG（What You See Is What You Get）的模式，你输入的 Markdown 语句会立刻自动转换为相应的富文本，这其实对 Markdown 新手来说更加友好。
+</code></pre>
+</li>
+<li>
+<p>Calibre</p>
+<pre><code>喜欢看电子书的朋友对 Calibre 一定不会感到陌生，其实这款强大的图书管理工具也有 macOS 版本，如果你之前用过它，你还可以在 Mac 电脑上继续感受到它的强大。通过 Calibre，你可以对电子书进行导入、编辑、格式转换、传输等操作，通过丰富的第三方插件你甚至还能实现很多意想不到的效果。
+</code></pre>
+</li>
+<li>
+<p>IINA</p>
+<pre><code>作为一个购买过射手影音、Movist 等视频播放器的人，当我看到 IINA 的时候简直是两眼放光。IINA 就像一款 macOS 原生播放器一样，简洁优雅，但是在功能上也毫不逊色。不管是视频解码还是字幕渲染，IINA 都是无可挑剔的。除此之外，IINA 还有在线字幕下载、画中画、视频串流等丰富的功能，充分满足你对一款视频播放器所有的幻想。最重要的是，IINA 还是免费的。
+</code></pre>
+</li>
+</ul>
+<h2 id="mac包管理器">mac包管理器</h2>
+<p>brew cask reinstall java<br>
+cask是安装GUI图形界面的命令</p>
+<ul>
+<li>
+<p>命令行工具<br>
+http://iterm2.com/</p>
+</li>
+<li>
+<p>包管理器<br>
+http://brew.sh/</p>
+</li>
+<li>
+<p>zsh<br>
+http://ohmyz.sh/</p>
+</li>
+<li>
+<p>爱情守望者_致力于分享最精彩的Mac软件<br>
+https://www.waitsun.com/</p>
+</li>
+</ul>
+<h2 id="软件">软件</h2>
+<ul>
+<li>typora</li>
+<li>Gridea</li>
+<li>iterm2</li>
+<li>transmit</li>
+<li>webstorm</li>
+<li>chrome</li>
+<li>anotherRedisManager</li>
+<li>appCleaner</li>
+<li>Dash</li>
+<li>postMan</li>
+<li>Docker</li>
+<li>cheatSheet</li>
+<li>Pdf expert</li>
+<li>Vs code</li>
+<li>anki</li>
+<li>ezip</li>
+</ul>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://sclihuiming.github.io/tag/zRsLlzahN/" class="tag">
+                    tools
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://sclihuiming.github.io/post/bei-jing-tong-xun-lu/">
+                  <h3 class="post-title">
+                    北京通讯录
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+  
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: '937b3a9f7298e02bbf41',
+        clientSecret: '8397bd3ecb816628326131e3d22ea1bc30773282',
+        repo: 'sclihuiming.github.io',
+        owner: 'sclihuiming',
+        admin: ['sclihuiming'],
+        id: location.pathname,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>
